@@ -512,7 +512,7 @@ dependencies = [
 [[package]]
 name = "markdown-fm-doc"
 version = "0.1.0"
-source = "git+https://github.com/ssosik/markdown-fm-doc#42da2902d37159a21039eb2704554bfeb7a6e137"
+source = "git+https://github.com/ssosik/markdown-fm-doc#f4cf289ee340e1131b703b120e5f55abc2f2ddaf"
 dependencies = [
  "chrono",
  "color-eyre",

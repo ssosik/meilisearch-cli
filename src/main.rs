@@ -1,7 +1,6 @@
 use clap::{App, Arg};
 use color_eyre::Report;
 use glob::{glob, Paths};
-use markdown_fm_doc::parse_file;
 use std::path::Path;
 
 pub fn glob_files(source: &str, verbosity: i8) -> Result<Paths, Box<dyn std::error::Error>> {
@@ -58,11 +57,11 @@ fn main() -> Result<(), Report> {
         match entry {
             // TODO convert this to iterator style using map/filter
             Ok(path) => {
-                if let Ok(mut xqdoc) = parse_file(&path) {
-                    let out = xqdoc.clone();
+                if let Ok(mut doc) = markdown_fm_doc::parse_file(&path) {
+                    let out = doc.clone();
                     let res = client
                         .post("http://127.0.0.1:7700/indexes/notes/documents")
-                        .body(serde_json::to_string(&vec![xqdoc]).unwrap())
+                        .body(serde_json::to_string(&vec![doc]).unwrap())
                         .send()?;
                     if verbosity > 0 {
                         println!(
