@@ -57,17 +57,15 @@ fn main() -> Result<(), Report> {
         match entry {
             // TODO convert this to iterator style using map/filter
             Ok(path) => {
-                if let Ok(mut doc) = markdown_fm_doc::parse_file(&path) {
-                    let out = doc.clone();
+                if let Ok(doc) = markdown_fm_doc::parse_file(&path) {
                     let res = client
                         .post("http://127.0.0.1:7700/indexes/notes/documents")
                         .body(serde_json::to_string(&vec![doc]).unwrap())
                         .send()?;
                     if verbosity > 0 {
                         println!(
-                            "✅ {:?} {}",
+                            "✅ {:?}",
                             res,
-                            serde_json::to_string(&vec![out]).unwrap(),
                         );
                     }
                 } else {
