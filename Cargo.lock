@@ -553,6 +553,7 @@ dependencies = [
  "serde_json",
  "shellexpand",
  "structopt",
+ "url",
  "uuid",
 ]
 

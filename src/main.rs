@@ -3,6 +3,7 @@ use glob::{glob, Paths};
 use meilisearch_cli::Document;
 use std::path::Path;
 use structopt::StructOpt;
+use url::Url;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -15,8 +16,11 @@ struct Opt {
     #[structopt(short)]
     verbose: bool,
 
+    #[structopt(short,long,default_value="http://127.0.0.1:7700")]
+    host: String,
+
     #[structopt(subcommand)]
-    import: MdImportCmd,
+    import: Subcommands,
     // /// Activate debug mode
     //// short and long flags (-d, --debug) will be deduced from the field's name
     //#[structopt(short, long)]
@@ -45,7 +49,7 @@ struct Opt {
 }
 
 #[derive(Debug, StructOpt)]
-enum MdImportCmd {
+enum Subcommands {
     /// Unexpanded path and glob pattern
     Import { globpath: String },
 }
@@ -75,6 +79,8 @@ fn main() -> Result<(), Report> {
 
     let cli = Opt::clap().get_matches();
     let verbosity = cli.occurrences_of("v");
+    let mut url_base = Url::parse(cli.value_of("host").unwrap())?;
+    url_base.set_path("indexes/notes/documents");
 
     if let Some(cli) = cli.subcommand_matches("import") {
         let client = reqwest::blocking::Client::new();
@@ -89,7 +95,7 @@ fn main() -> Result<(), Report> {
                     if let Ok(mdfm_doc) = markdown_fm_doc::parse_file(&path) {
                         let doc: Vec<Document> = vec![mdfm_doc.into()];
                         let res = client
-                            .post("http://127.0.0.1:7700/indexes/notes/documents")
+                            .post(url_base.as_ref())
                             .body(serde_json::to_string(&doc).unwrap())
                             .send()?;
                         if verbosity > 0 {
