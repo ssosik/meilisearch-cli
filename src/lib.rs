@@ -20,6 +20,8 @@ pub struct Document {
     #[serde(default)]
     pub links: Vec<String>,
     #[serde(default)]
+    pub slug: String,
+    #[serde(default)]
     pub subtitle: String,
     #[serde(default)]
     pub tags: Vec<String>,
