@@ -27,6 +27,7 @@ struct Opt {
 enum Subcommands {
     /// Import frontmatter+markdown formatted files matching the unexpanded glob pattern
     Import { globpath: String },
+    Query { },
 }
 
 pub fn glob_files(source: &str, verbosity: u8) -> Result<Paths, Box<dyn std::error::Error>> {
@@ -84,6 +85,8 @@ fn main() -> Result<(), Report> {
                 Err(e) => eprintln!("❌ {:?}", e),
             }
         }
+    } else if let Some(cli) = cli.subcommand_matches("query") {
+        println!("Here to do query");
     }
 
     Ok(())
