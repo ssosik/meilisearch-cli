@@ -1,6 +1,7 @@
 use clap::{App, Arg};
 use color_eyre::Report;
 use glob::{glob, Paths};
+use meilisearch_cli::Document;
 use std::path::Path;
 
 pub fn glob_files(source: &str, verbosity: i8) -> Result<Paths, Box<dyn std::error::Error>> {
@@ -57,16 +58,14 @@ fn main() -> Result<(), Report> {
         match entry {
             // TODO convert this to iterator style using map/filter
             Ok(path) => {
-                if let Ok(doc) = markdown_fm_doc::parse_file(&path) {
+                if let Ok(mdfm_doc) = markdown_fm_doc::parse_file(&path) {
+                    let doc: Vec<Document> = vec![mdfm_doc.into()];
                     let res = client
                         .post("http://127.0.0.1:7700/indexes/notes/documents")
-                        .body(serde_json::to_string(&vec![doc]).unwrap())
+                        .body(serde_json::to_string(&doc).unwrap())
                         .send()?;
                     if verbosity > 0 {
-                        println!(
-                            "✅ {:?}",
-                            res,
-                        );
+                        println!("✅ {:?}", res,);
                     }
                 } else {
                     eprintln!("❌ Failed to load file {}", path.display());
