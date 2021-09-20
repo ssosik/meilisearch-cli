@@ -13,8 +13,8 @@ use url::Url;
 )]
 struct Opt {
     /// switch on verbosity
-    #[structopt(short)]
-    verbose: bool,
+    #[structopt(short, long, parse(from_occurrences))]
+    verbosity: u8,
 
     #[structopt(short, long, default_value = "http://127.0.0.1:7700")]
     host: String,
@@ -29,7 +29,7 @@ enum Subcommands {
     Import { globpath: String },
 }
 
-pub fn glob_files(source: &str, verbosity: i8) -> Result<Paths, Box<dyn std::error::Error>> {
+pub fn glob_files(source: &str, verbosity: u8) -> Result<Paths, Box<dyn std::error::Error>> {
     let glob_path = Path::new(&source);
     let glob_str = shellexpand::tilde(glob_path.to_str().unwrap());
 
@@ -53,7 +53,7 @@ fn main() -> Result<(), Report> {
     setup()?;
 
     let cli = Opt::clap().get_matches();
-    let verbosity = cli.occurrences_of("v");
+    let verbosity = cli.occurrences_of("verbosity");
     let mut url_base = Url::parse(cli.value_of("host").unwrap())?;
     url_base.set_path("indexes/notes/documents");
 
@@ -61,7 +61,7 @@ fn main() -> Result<(), Report> {
         let client = reqwest::blocking::Client::new();
 
         // Read the markdown files and post them to local Meilisearch
-        for entry in glob_files(cli.value_of("globpath").unwrap(), verbosity as i8)
+        for entry in glob_files(cli.value_of("globpath").unwrap(), verbosity as u8)
             .expect("Failed to read glob pattern")
         {
             match entry {
