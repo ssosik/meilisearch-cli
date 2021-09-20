@@ -26,8 +26,10 @@ struct Opt {
 #[derive(Debug, StructOpt)]
 enum Subcommands {
     /// Import frontmatter+markdown formatted files matching the unexpanded glob pattern
-    Import { globpath: String },
-    Query { },
+    Import {
+        globpath: String,
+    },
+    Query {},
 }
 
 pub fn glob_files(source: &str, verbosity: u8) -> Result<Paths, Box<dyn std::error::Error>> {
@@ -56,10 +58,11 @@ fn main() -> Result<(), Report> {
     let cli = Opt::clap().get_matches();
     let verbosity = cli.occurrences_of("verbosity");
     let mut url_base = Url::parse(cli.value_of("host").unwrap())?;
-    url_base.set_path("indexes/notes/documents");
 
     if let Some(cli) = cli.subcommand_matches("import") {
         let client = reqwest::blocking::Client::new();
+
+        url_base.set_path("indexes/notes/documents");
 
         // Read the markdown files and post them to local Meilisearch
         for entry in glob_files(cli.value_of("globpath").unwrap(), verbosity as u8)
