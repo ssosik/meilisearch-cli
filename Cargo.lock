@@ -540,8 +540,10 @@ dependencies = [
  "glob",
  "markdown-fm-doc",
  "reqwest",
+ "serde",
  "serde_json",
  "shellexpand",
+ "uuid",
 ]
 
 [[package]]
