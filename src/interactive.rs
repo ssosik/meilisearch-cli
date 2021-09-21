@@ -1,6 +1,5 @@
 use color_eyre::Report;
-use meilisearch_cli::event::{Event, Events};
-use meilisearch_cli::Document;
+use meilisearch_cli::{Document, event::Event, event::Events};
 use std::io::{stdout, Write};
 use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{

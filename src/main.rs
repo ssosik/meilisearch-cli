@@ -58,6 +58,7 @@ fn setup() -> Result<(), Report> {
         std::env::set_var("RUST_LIB_BACKTRACE", "1")
     }
     color_eyre::install()?;
+    interactive::setup_panic();
 
     Ok(())
 }
