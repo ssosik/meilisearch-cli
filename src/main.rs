@@ -4,6 +4,7 @@ use meilisearch_cli::Document;
 use std::path::Path;
 use structopt::StructOpt;
 use url::Url;
+mod interactive;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -16,7 +17,12 @@ struct Opt {
     #[structopt(short, long, parse(from_occurrences))]
     verbosity: u8,
 
-    #[structopt(short, long, default_value = "http://127.0.0.1:7700", env = "MEILI_HOST")]
+    #[structopt(
+        short,
+        long,
+        default_value = "http://127.0.0.1:7700",
+        env = "MEILI_HOST"
+    )]
     host: String,
 
     #[structopt(short, long, default_value = "", env = "MEILI_KEY")]
@@ -29,9 +35,7 @@ struct Opt {
 #[derive(Debug, StructOpt)]
 enum Subcommands {
     /// Import frontmatter+markdown formatted files matching the unexpanded glob pattern
-    Import {
-        globpath: String,
-    },
+    Import { globpath: String },
     /// Interactively query the server
     Query {},
     /// Dump records to a local path
@@ -96,6 +100,7 @@ fn main() -> Result<(), Report> {
         }
     } else if let Some(cli) = cli.subcommand_matches("query") {
         println!("Here to do query");
+        interactive::query();
     }
 
     Ok(())
