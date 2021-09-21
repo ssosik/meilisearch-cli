@@ -28,6 +28,8 @@ pub(crate) struct TerminalApp {
     pub(crate) matches: Vec<Document>,
     /// Keep track of which matches are selected
     pub(crate) selected_state: ListState,
+    /// Display error messages
+    pub(crate) error: String,
     /// Display the serialized payload to send to the server
     pub(crate) debug: String,
     /// Report the server response
@@ -88,6 +90,7 @@ impl Default for TerminalApp {
             output: String::new(),
             matches: Vec::new(),
             selected_state: ListState::default(),
+            error: String::new(),
             debug: String::new(),
             response: String::new(),
         }
@@ -126,6 +129,20 @@ struct ApiQuery {
     pub facets_distribution: Option<Vec<String>>,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct ApiResponse {
+    pub hits: Vec<Document>,
+    #[serde(rename = "nbHits")]
+    pub num_hits: u32,
+    #[serde(rename = "exhaustiveNbHits")]
+    pub exhaustive_num_hits: bool,
+    pub query: String,
+    pub limit: u16,
+    pub offset: u32,
+    #[serde(rename = "processingTimeMs")]
+    pub processing_time_ms: u32,
+}
+
 /// Interactive query interface
 pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>, Report> {
     let mut tui = tui::Terminal::new(TermionBackend::new(AlternateScreen::from(
@@ -148,6 +165,7 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
                 .constraints(
                     [
                         Constraint::Min(1),
+                        Constraint::Length(2),
                         Constraint::Length(2),
                         Constraint::Length(2),
                         Constraint::Length(2),
@@ -198,7 +216,7 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
                 panes[1].y,
             );
 
-            // Area to display the parsed Xapian::Query.get_description()
+            // Area to display debug messages
             let debug = Paragraph::new(app.debug.as_ref())
                 .style(Style::default().fg(Color::Green))
                 .block(Block::default().borders(Borders::NONE));
@@ -209,6 +227,12 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
                 .style(Style::default().fg(Color::Red))
                 .block(Block::default().borders(Borders::NONE));
             f.render_widget(response, panes[3]);
+
+            // Area to display Error messages
+            let error = Paragraph::new(app.error.as_ref())
+                .style(Style::default().fg(Color::Green))
+                .block(Block::default().borders(Borders::NONE));
+            f.render_widget(error, panes[4]);
         })?;
 
         // Handle input
@@ -244,13 +268,20 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
             };
             app.debug = serde_json::to_string(&q).unwrap();
 
-            let res = client
+            match client
                 .post(uri.as_ref())
                 .body(serde_json::to_string(&q).unwrap())
                 .header(CONTENT_TYPE, "application/json")
-                .send()?;
-
-            app.response = res.text()?;
+                .send()?
+                .json::<ApiResponse>()
+            {
+                Ok(resp) => {
+                    app.matches = resp.hits;
+                }
+                Err(e) => {
+                    app.error = e.to_string();
+                }
+            };
         }
     }
 
