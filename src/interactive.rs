@@ -1,5 +1,6 @@
 use color_eyre::Report;
-use meilisearch_cli::{Document, event::Event, event::Events};
+use meilisearch_cli::{event::Event, event::Events, Document};
+use serde::{Deserialize, Serialize};
 use std::io::{stdout, Write};
 use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
@@ -9,6 +10,7 @@ use tui::{
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
 };
+use url::Url;
 
 // Needed to provide `width()` method on String:
 // no method named `width` found for struct `std::string::String` in the current scope
@@ -24,16 +26,16 @@ pub(crate) struct TerminalApp {
     pub(crate) matches: Vec<Document>,
     /// Keep track of which matches are selected
     pub(crate) selected_state: ListState,
-    ///// Report query parsing errors back to the user
-    //pub(crate) errout: String,
-    ///// Display the parsed query for debugging purposes
-    //pub(crate) query: String,
+    /// Display the serialized payload to send to the server
+    pub(crate) debug: String,
+    /// Report the server response
+    pub(crate) response: String,
 }
 
 impl TerminalApp {
     pub fn get_selected(&mut self) -> Vec<String> {
-        let mut ret: Vec<String> = Vec::new();
-        if let Some(i) = self.selected_state.selected() {
+        let ret: Vec<String> = Vec::new();
+        if let Some(_i) = self.selected_state.selected() {
             //if let Some(s) = self.matches[i].full_path.to_str() {
             //    ret.push(s.into());
             //}
@@ -84,8 +86,8 @@ impl Default for TerminalApp {
             output: String::new(),
             matches: Vec::new(),
             selected_state: ListState::default(),
-            //errout: String::new(),
-            //query: String::new(),
+            debug: String::new(),
+            response: String::new(),
         }
     }
 }
@@ -109,8 +111,23 @@ pub fn setup_panic() {
     }));
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct ApiQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(rename = "q")]
+    pub query: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub sort: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    #[serde(rename = "facetsDistribution")]
+    pub facets_distribution: Option<Vec<String>>,
+}
+
 /// Interactive query interface
-pub fn query() -> Result<Vec<String>, Report> {
+pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>, Report> {
     let mut tui = tui::Terminal::new(TermionBackend::new(AlternateScreen::from(
         stdout().into_raw_mode().unwrap(),
     )))
@@ -181,17 +198,17 @@ pub fn query() -> Result<Vec<String>, Report> {
                 panes[1].y,
             );
 
-            //// Area to display the parsed Xapian::Query.get_description()
-            //let query = Paragraph::new(app.query.as_ref())
-            //    .style(Style::default().fg(Color::Green))
-            //    .block(Block::default().borders(Borders::NONE));
-            //f.render_widget(query, panes[2]);
+            // Area to display the parsed Xapian::Query.get_description()
+            let debug = Paragraph::new(app.debug.as_ref())
+                .style(Style::default().fg(Color::Green))
+                .block(Block::default().borders(Borders::NONE));
+            f.render_widget(debug, panes[2]);
 
-            //// Area where errors are displayed, query parsing errors, etc
-            //let errout = Paragraph::new(app.errout.as_ref())
-            //    .style(Style::default().fg(Color::Red))
-            //    .block(Block::default().borders(Borders::NONE));
-            //f.render_widget(errout, panes[3]);
+            // Area where errors are displayed, query parsing errors, etc
+            let response = Paragraph::new(app.response.as_ref())
+                .style(Style::default().fg(Color::Red))
+                .block(Block::default().borders(Borders::NONE));
+            f.render_widget(response, panes[3]);
         })?;
 
         // Handle input
@@ -221,20 +238,19 @@ pub fn query() -> Result<Vec<String>, Report> {
                 _ => {}
             }
 
-            let mut inp: String = app.query_input.to_owned();
-            // Add a trailing ` ;` to the query to hint to Nom that it has a "full" string
-            inp.push_str(" ;");
+            //let mut inp: String = app.query_input.to_owned();
 
-            //let enq = db.new_enquire()?;
-            //match xapian_utils::parse_user_query(&inp) {
-            //    Ok(mut query) => {
-            //        app.query = query.get_description();
-            //        app.matches = xapian_utils::query_db(enq, query)?;
-            //    }
-            //    Err(e) => {
-            //        app.errout = e.to_string();
-            //    }
-            //};
+            let q = ApiQuery {
+                query: Some(app.query_input.to_owned()),
+                ..Default::default()
+            };
+            app.debug = serde_json::to_string(&q).unwrap();
+            let res = client
+                .post(uri.as_ref())
+                .body(serde_json::to_string(&q).unwrap())
+                .send()?;
+
+            app.response = res.text()?;
         }
     }
 

@@ -68,7 +68,9 @@ fn main() -> Result<(), Report> {
 
     let cli = Opt::clap().get_matches();
     let verbosity = cli.occurrences_of("verbosity");
-    let mut url_base = Url::parse(cli.value_of("host").unwrap())?;
+    let host = cli.value_of("host").unwrap();
+    let key = cli.value_of("key").unwrap();
+    let mut url_base = Url::parse(host)?;
 
     if let Some(cli) = cli.subcommand_matches("import") {
         let client = reqwest::blocking::Client::new();
@@ -99,9 +101,20 @@ fn main() -> Result<(), Report> {
                 Err(e) => eprintln!("❌ {:?}", e),
             }
         }
-    } else if let Some(cli) = cli.subcommand_matches("query") {
+    } else if let Some(_cli) = cli.subcommand_matches("query") {
         println!("Here to do query");
-        interactive::query();
+        let client = reqwest::blocking::Client::new();
+        url_base.set_path("indexes/notes/search");
+        match interactive::query(client, url_base) {
+            Ok(res) => {
+                if verbosity > 0 {
+                    println!("✅ {:?}", res);
+                }
+            }
+            Err(e) => {
+                eprintln!("❌ {:?}", e);
+            }
+        };
     }
 
     Ok(())
