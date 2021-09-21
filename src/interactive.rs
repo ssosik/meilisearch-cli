@@ -1,3 +1,5 @@
+use reqwest::header::CONTENT_TYPE;
+
 use color_eyre::Report;
 use meilisearch_cli::{event::Event, event::Events, Document};
 use serde::{Deserialize, Serialize};
@@ -245,6 +247,7 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
             let res = client
                 .post(uri.as_ref())
                 .body(serde_json::to_string(&q).unwrap())
+                .header(CONTENT_TYPE, "application/json")
                 .send()?;
 
             app.response = res.text()?;
