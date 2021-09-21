@@ -105,8 +105,6 @@ pub fn setup_panic() {
             termion::screen::ToMainScreen
         )
         .unwrap();
-        // Clippy removed this line in favor of the println!("") below
-        //write!(stdout(), "{:?}", x).unwrap();
         print!("");
     }));
 }
@@ -238,13 +236,12 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
                 _ => {}
             }
 
-            //let mut inp: String = app.query_input.to_owned();
-
             let q = ApiQuery {
                 query: Some(app.query_input.to_owned()),
                 ..Default::default()
             };
             app.debug = serde_json::to_string(&q).unwrap();
+
             let res = client
                 .post(uri.as_ref())
                 .body(serde_json::to_string(&q).unwrap())
