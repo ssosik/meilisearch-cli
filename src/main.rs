@@ -16,8 +16,11 @@ struct Opt {
     #[structopt(short, long, parse(from_occurrences))]
     verbosity: u8,
 
-    #[structopt(short, long, default_value = "http://127.0.0.1:7700")]
+    #[structopt(short, long, default_value = "http://127.0.0.1:7700", env = "MEILI_HOST")]
     host: String,
+
+    #[structopt(short, long, default_value = "", env = "MEILI_KEY")]
+    key: String,
 
     #[structopt(subcommand)]
     import: Subcommands,
@@ -29,7 +32,10 @@ enum Subcommands {
     Import {
         globpath: String,
     },
+    /// Interactively query the server
     Query {},
+    /// Dump records to a local path
+    Dump { path: String },
 }
 
 pub fn glob_files(source: &str, verbosity: u8) -> Result<Paths, Box<dyn std::error::Error>> {
