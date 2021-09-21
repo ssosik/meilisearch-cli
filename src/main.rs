@@ -101,8 +101,8 @@ fn main() -> Result<(), Report> {
                 Err(e) => eprintln!("❌ {:?}", e),
             }
         }
+
     } else if let Some(_cli) = cli.subcommand_matches("query") {
-        println!("Here to do query");
         let client = reqwest::blocking::Client::new();
         url_base.set_path("indexes/notes/search");
         match interactive::query(client, url_base) {

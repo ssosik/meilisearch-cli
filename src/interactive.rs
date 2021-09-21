@@ -222,15 +222,15 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
                 .block(Block::default().borders(Borders::NONE));
             f.render_widget(debug, panes[2]);
 
-            // Area where errors are displayed, query parsing errors, etc
+            // Area to display server response
             let response = Paragraph::new(app.response.as_ref())
-                .style(Style::default().fg(Color::Red))
+                .style(Style::default().fg(Color::Yellow))
                 .block(Block::default().borders(Borders::NONE));
             f.render_widget(response, panes[3]);
 
             // Area to display Error messages
             let error = Paragraph::new(app.error.as_ref())
-                .style(Style::default().fg(Color::Green))
+                .style(Style::default().fg(Color::Red))
                 .block(Block::default().borders(Borders::NONE));
             f.render_widget(error, panes[4]);
         })?;
@@ -277,6 +277,7 @@ pub fn query(client: reqwest::blocking::Client, uri: Url) -> Result<Vec<String>,
             {
                 Ok(resp) => {
                     app.matches = resp.hits;
+                    app.error = String::from("");
                 }
                 Err(e) => {
                     app.error = e.to_string();

@@ -256,4 +256,4 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/documents -XPOST -d@-
 EOF
 
 # Import data
-./target/debug/meilisearch-cli '~/.local/vimdiary/*.md'
+./target/debug/meilisearch-cli import '~/.local/vimdiary/*.md'
