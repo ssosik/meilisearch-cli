@@ -40,6 +40,10 @@ enum Subcommands {
     Query {},
     /// Dump records to a local path
     Dump { path: String },
+    /// Opens $EDITOR on a template and then adds it when the editor is closed
+    New {},
+    /// Adds TOML-based document
+    Add {},
 }
 
 pub fn glob_files(source: &str, verbosity: u8) -> Result<Paths, Box<dyn std::error::Error>> {
@@ -69,20 +73,17 @@ fn main() -> Result<(), Report> {
     let cli = Opt::clap().get_matches();
     let verbosity = cli.occurrences_of("verbosity");
     let host = cli.value_of("host").unwrap();
-    let key = cli.value_of("key").unwrap();
+    let _key = cli.value_of("key").unwrap();
     let mut url_base = Url::parse(host)?;
 
     if let Some(cli) = cli.subcommand_matches("import") {
         let client = reqwest::blocking::Client::new();
-
         url_base.set_path("indexes/notes/documents");
-
         // Read the markdown files and post them to local Meilisearch
         for entry in glob_files(cli.value_of("globpath").unwrap(), verbosity as u8)
             .expect("Failed to read glob pattern")
         {
             match entry {
-                // TODO convert this to iterator style using map/filter
                 Ok(path) => {
                     if let Ok(mdfm_doc) = markdown_fm_doc::parse_file(&path) {
                         let doc: Vec<Document> = vec![mdfm_doc.into()];
@@ -101,18 +102,16 @@ fn main() -> Result<(), Report> {
                 Err(e) => eprintln!("❌ {:?}", e),
             }
         }
-
     } else if let Some(_cli) = cli.subcommand_matches("query") {
         let client = reqwest::blocking::Client::new();
         url_base.set_path("indexes/notes/search");
-        match interactive::query(client, url_base) {
+        match interactive::query(client, url_base, verbosity as u8) {
             Ok(res) => {
-                if verbosity > 0 {
-                    println!("✅ {:?}", res);
-                }
+                println!("Document IDs: {:?}", res);
             }
             Err(e) => {
                 eprintln!("❌ {:?}", e);
+                std::panic::panic_any(e);
             }
         };
     }

@@ -1,5 +1,5 @@
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -10,7 +10,9 @@ pub struct Document {
     // the revision field should be incremented
     pub origid: Uuid,
     pub authors: Vec<String>,
-    #[serde(skip_serializing)]
+    // TODO Need to conditionally skip serializing the body. DO serialize the body when importing
+    // data, DO NOT serialize the body when rendering the preview pane for a given document
+    //#[serde(skip_serializing)]
     pub body: String,
     pub date: String,
     pub latest: bool,
@@ -26,7 +28,7 @@ pub struct Document {
     #[serde(default)]
     pub subtitle: String,
     #[serde(default)]
-    pub tags: Vec<String>,
+    pub tag: Vec<String>,
     #[serde(default)]
     pub weight: i32,
 }
@@ -40,7 +42,6 @@ impl fmt::Display for Document {
 
 impl From<markdown_fm_doc::Document> for Document {
     fn from(item: markdown_fm_doc::Document) -> Self {
-        //let uuid =Uuid::new_v4().to_hyphenated().to_string();
         let uuid = Uuid::new_v4();
         Document {
             id: uuid,
@@ -50,7 +51,7 @@ impl From<markdown_fm_doc::Document> for Document {
             date: item.date,
             latest: true,
             revision: 1,
-            tags: item.tags,
+            tag: item.tags,
             title: item.title,
             subtitle: item.subtitle,
             ..Default::default()
@@ -77,7 +78,9 @@ pub mod event {
     /// type is handled in its own thread and returned to a common `Receiver`
     pub struct Events {
         rx: mpsc::Receiver<Event<Key>>,
+        #[allow(dead_code)]
         input_handle: thread::JoinHandle<()>,
+        #[allow(dead_code)]
         tick_handle: thread::JoinHandle<()>,
     }
 
@@ -94,6 +97,12 @@ pub mod event {
         }
     }
 
+    impl Default for Events {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl Events {
         pub fn new() -> Events {
             Events::with_config(Config::default())
@@ -105,12 +114,10 @@ pub mod event {
                 let tx = tx.clone();
                 thread::spawn(move || {
                     let stdin = io::stdin();
-                    for evt in stdin.keys() {
-                        if let Ok(key) = evt {
-                            if let Err(err) = tx.send(Event::Input(key)) {
-                                eprintln!("{}", err);
-                                return;
-                            }
+                    for evt in stdin.keys().flatten() {
+                        if let Err(err) = tx.send(Event::Input(evt)) {
+                            eprintln!("{}", err);
+                            return;
                         }
                     }
                 })

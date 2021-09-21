@@ -11,7 +11,7 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/settings -XPOST -d@-
   "filterableAttributes": [
     "author",
     "date",
-    "tags"
+    "tag"
   ],
   "sortableAttributes": [
     "date",
@@ -219,7 +219,7 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/documents -XPOST -d@-
         "body":"\nsome content\n",
         "date":"2021-09-17T09:28:33-04:00",
         "revision": 1,
-        "tags":["test123"],
+        "tag":["test123"],
         "title":"test document"
   },
   {
@@ -229,7 +229,7 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/documents -XPOST -d@-
         "body":"\nsome content\n",
         "date":"2021-09-18T09:28:33-04:00",
         "revision": 2,
-        "tags":["test123"],
+        "tag":["test123"],
         "title":"test NEW 1 document"
   },
   {
@@ -239,7 +239,7 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/documents -XPOST -d@-
         "body":"\nsome content\n",
         "date":"2021-09-20T09:28:34-04:00",
         "revision": 3,
-        "tags":["test123"],
+        "tag":["test123"],
         "title":"test NEW 2 document"
   },
   {
@@ -249,7 +249,7 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/documents -XPOST -d@-
         "body":"\nsome content\n",
         "date":"2021-09-20T09:28:34-04:00",
         "revision": 4,
-        "tags":["test123"],
+        "tag":["test123"],
         "title":"test NEW 3 document"
   }
 ]
