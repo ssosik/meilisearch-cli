@@ -49,7 +49,7 @@ impl TerminalApp {
 
     pub fn get_selected_contents(&mut self) -> String {
         if let Some(i) = self.selected_state.selected() {
-            return self.matches[i].body.clone();
+            return self.matches[i].to_string().clone();
         };
         String::from("")
     }

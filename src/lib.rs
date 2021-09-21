@@ -1,3 +1,4 @@
+use std::fmt;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -9,6 +10,7 @@ pub struct Document {
     // the revision field should be incremented
     pub origid: Uuid,
     pub authors: Vec<String>,
+    #[serde(skip_serializing)]
     pub body: String,
     pub date: String,
     pub latest: bool,
@@ -27,6 +29,13 @@ pub struct Document {
     pub tags: Vec<String>,
     #[serde(default)]
     pub weight: i32,
+}
+
+impl fmt::Display for Document {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let toml = toml::to_string(&self).unwrap();
+        write!(f, "+++\n{}+++\n{}", toml, self.body)
+    }
 }
 
 impl From<markdown_fm_doc::Document> for Document {
