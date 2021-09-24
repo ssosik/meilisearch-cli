@@ -148,7 +148,7 @@ impl Default for TerminalApp {
 }
 
 pub fn setup_panic() {
-    std::panic::set_hook(Box::new(move |x| {
+    std::panic::set_hook(Box::new(move |_x| {
         stdout()
             .into_raw_mode()
             .unwrap()
@@ -160,7 +160,6 @@ pub fn setup_panic() {
             termion::screen::ToMainScreen
         )
         .unwrap();
-        write!(stdout(), "{:?}", x).unwrap();
         print!("");
     }));
 }
