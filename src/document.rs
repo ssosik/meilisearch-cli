@@ -59,6 +59,7 @@ impl Document {
         }
         Err(eyre!("❌ Failed to convert path to date '{}'", &self.date))
     }
+
     pub fn parse_date(&self) -> Result<DateTime<FixedOffset>, Report> {
         if let Ok(rfc3339) = DateTime::parse_from_rfc3339(&self.date) {
             return Ok(rfc3339);
