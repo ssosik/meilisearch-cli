@@ -2,6 +2,7 @@ use color_eyre::Report;
 use glob::{glob, Paths};
 use meilisearch_cli::Document;
 use std::path::Path;
+use std::fs;
 use structopt::StructOpt;
 use url::Url;
 mod interactive;
@@ -114,6 +115,8 @@ fn main() -> Result<(), Report> {
                 std::panic::panic_any(e);
             }
         };
+    } else if let Some(cli) = cli.subcommand_matches("dump") {
+        fs::create_dir_all(cli.value_of("path").unwrap())?;
     }
 
     Ok(())
