@@ -1,6 +1,6 @@
 use color_eyre::Report;
 use eyre::bail;
-use meilisearch_cli::{event::Event, event::Events, Document};
+use meilisearch_cli::{event::Event, event::Events, document};
 use reqwest::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
 use std::io::{stdout, Write};
@@ -41,7 +41,7 @@ struct ApiQuery {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct ApiResponse {
-    pub hits: Vec<Document>,
+    pub hits: Vec<document::Document>,
     #[serde(rename = "nbHits")]
     pub num_hits: u32,
     #[serde(rename = "exhaustiveNbHits")]
@@ -62,7 +62,7 @@ pub(crate) struct TerminalApp {
     /// Preview window
     pub(crate) output: String,
     /// Query Matches
-    pub(crate) matches: Vec<Document>,
+    pub(crate) matches: Vec<document::Document>,
     /// Keep track of which matches are selected
     pub(crate) selected_state: ListState,
     /// Display error messages

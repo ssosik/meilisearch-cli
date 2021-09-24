@@ -1,6 +1,6 @@
 use color_eyre::Report;
 use glob::{glob, Paths};
-use meilisearch_cli::Document;
+use meilisearch_cli::document;
 use std::path::Path;
 use std::fs;
 use structopt::StructOpt;
@@ -87,7 +87,7 @@ fn main() -> Result<(), Report> {
             match entry {
                 Ok(path) => {
                     if let Ok(mdfm_doc) = markdown_fm_doc::parse_file(&path) {
-                        let doc: Vec<Document> = vec![mdfm_doc.into()];
+                        let doc: Vec<document::Document> = vec![mdfm_doc.into()];
                         let res = client
                             .post(url_base.as_ref())
                             .body(serde_json::to_string(&doc).unwrap())
