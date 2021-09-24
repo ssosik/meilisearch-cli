@@ -69,7 +69,7 @@ impl Document {
         Err(eyre!("❌ Failed to convert path to str"))
     }
 
-    pub fn parse_file(path: &std::path::PathBuf) -> Result<Document, io::Error> {
+    pub fn parse_file(path: &std::path::Path) -> Result<Document, io::Error> {
         let full_path = path.to_str().unwrap();
         let s = fs::read_to_string(full_path)?;
 
@@ -185,7 +185,7 @@ impl Serialize for Document {
         if self.background_img.width() > 0 {
             s.serialize_field("background_img", &self.background_img)?;
         };
-        if self.links.len() > 0 {
+        if !self.links.is_empty() {
             s.serialize_field("links", &self.links)?;
         };
         if self.slug.width() > 0 {
