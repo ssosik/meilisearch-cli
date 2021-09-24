@@ -117,7 +117,8 @@ fn main() -> Result<(), Report> {
             }
         };
     } else if let Some(cli) = cli.subcommand_matches("dump") {
-        fs::create_dir_all(cli.value_of("path").unwrap())?;
+        let path = cli.value_of("path").unwrap();
+        fs::create_dir_all(path)?;
 
         let client = reqwest::blocking::Client::new();
         url_base.set_path("indexes/notes/search");
@@ -161,7 +162,8 @@ fn main() -> Result<(), Report> {
                     })
                     .collect::<Vec<_>>()
                 {
-                    println!("entry: {} {:?}", entry.filename, entry);
+                    let f = Path::new(path).join(&entry.filename);
+                    fs::write(f, entry.to_string())?;
                 }
             }
             Err(e) => {
