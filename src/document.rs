@@ -71,13 +71,14 @@ impl Serialize for Document {
         S: Serializer,
     {
         let mut s = if self.skip_serializing_body {
-            serializer.serialize_struct("Document", 13)?
-        } else {
             serializer.serialize_struct("Document", 14)?
+        } else {
+            serializer.serialize_struct("Document", 15)?
         };
         s.serialize_field("authors", &self.authors)?;
         s.serialize_field("date", &self.date)?;
         s.serialize_field("tag", &self.tag)?;
+        s.serialize_field("filename", &self.filename)?;
         s.serialize_field("title", &self.title)?;
         s.serialize_field("subtitle", &self.subtitle)?;
         s.serialize_field("id", &self.id)?;

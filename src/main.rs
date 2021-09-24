@@ -161,7 +161,7 @@ fn main() -> Result<(), Report> {
                     })
                     .collect::<Vec<_>>()
                 {
-                    println!("entry: {:?}", entry);
+                    println!("entry: {} {:?}", entry.filename, entry);
                 }
             }
             Err(e) => {
