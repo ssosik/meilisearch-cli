@@ -66,7 +66,6 @@ fn setup() -> Result<(), Report> {
         std::env::set_var("RUST_LIB_BACKTRACE", "1")
     }
     color_eyre::install()?;
-    interactive::setup_panic();
 
     Ok(())
 }
@@ -115,8 +114,8 @@ fn main() -> Result<(), Report> {
         {
             match entry {
                 Ok(path) => {
-                    if let Ok(mdfm_doc) = document::Document::parse_file(&path) {
-                        let doc: Vec<document::Document> = vec![mdfm_doc.into()];
+                    if let Ok(doc) = document::Document::parse_file(&path) {
+                        let doc: Vec<document::Document> = vec![doc.into()];
                         let res = client
                             .post(url_base.as_ref())
                             .body(serde_json::to_string(&doc).unwrap())
@@ -132,7 +131,10 @@ fn main() -> Result<(), Report> {
                 Err(e) => eprintln!("❌ {:?}", e),
             }
         }
+
     } else if let Some(_cli) = cli.subcommand_matches("query") {
+        interactive::setup_panic();
+
         let client = reqwest::blocking::Client::new();
         url_base.set_path("indexes/notes/search");
         match interactive::query(client, url_base, verbosity as u8) {
@@ -144,6 +146,7 @@ fn main() -> Result<(), Report> {
                 std::panic::panic_any(e);
             }
         };
+
     } else if let Some(cli) = cli.subcommand_matches("dump") {
         let path = cli.value_of("path").unwrap();
         fs::create_dir_all(path)?;
