@@ -18,6 +18,7 @@ pub struct Document {
     pub authors: Vec<String>,
     // Note the custom Serialize implementation below to skip the `body` if the
     // skip_serializing_body attribute is set
+    #[serde(default)]
     pub body: String,
     #[serde(default)]
     #[serde(skip)]
