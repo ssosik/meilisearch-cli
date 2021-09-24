@@ -1,6 +1,6 @@
 use color_eyre::Report;
 use eyre::bail;
-use meilisearch_cli::{document, event::Event, event::Events};
+use meilisearch_cli::document;
 use reqwest::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
 use std::io::{stdout, Write};
@@ -171,7 +171,7 @@ pub fn query(
     .unwrap();
 
     // Setup event handlers
-    let events = Events::new();
+    let events = event::Events::new();
 
     // Create default app state
     let mut app = TerminalApp::default();
@@ -328,9 +328,7 @@ pub fn query(
                 bail!("Failed to handle input {}", e.to_string());
             }
             Ok(ev) => {
-                if let Event::Input(input) = ev {
-                    //if let Event::Input(input) = events.next().expect("Failed to handle input") {
-
+                if let event::Event::Input(input) = ev {
                     // TODO add support for:
                     //  - tab to switch between input boxes
                     //  - ctrl-e to open selected in $EDITOR, then submit on file close
@@ -426,10 +424,14 @@ pub fn query(
                     // 2.) Parse the results as JSON.
                     match serde_json::from_str::<ApiResponse>(&response_body) {
                         Ok(mut resp) => {
-                            app.matches = resp.hits.iter_mut().map(|mut m| {
-                                m.skip_serializing_body = true;
-                                m.to_owned()
-                            }).collect::<Vec<_>>();
+                            app.matches = resp
+                                .hits
+                                .iter_mut()
+                                .map(|mut m| {
+                                    m.skip_serializing_body = true;
+                                    m.to_owned()
+                                })
+                                .collect::<Vec<_>>();
                             app.error = String::from("");
                         }
                         Err(e) => {
@@ -454,4 +456,89 @@ pub fn query(
     tui.clear().unwrap();
 
     Ok(app.get_selected())
+}
+
+pub mod event {
+
+    use std::io;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    use termion::event::Key;
+    use termion::input::TermRead;
+
+    pub enum Event<I> {
+        Input(I),
+        Tick,
+    }
+
+    /// A small event handler that wrap termion input and tick events. Each event
+    /// type is handled in its own thread and returned to a common `Receiver`
+    pub struct Events {
+        rx: mpsc::Receiver<Event<Key>>,
+        #[allow(dead_code)]
+        input_handle: thread::JoinHandle<()>,
+        #[allow(dead_code)]
+        tick_handle: thread::JoinHandle<()>,
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Config {
+        pub tick_rate: Duration,
+    }
+
+    impl Default for Config {
+        fn default() -> Config {
+            Config {
+                tick_rate: Duration::from_millis(250),
+            }
+        }
+    }
+
+    impl Default for Events {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl Events {
+        pub fn new() -> Events {
+            Events::with_config(Config::default())
+        }
+
+        pub fn with_config(config: Config) -> Events {
+            let (tx, rx) = mpsc::channel();
+            let input_handle = {
+                let tx = tx.clone();
+                thread::spawn(move || {
+                    let stdin = io::stdin();
+                    for evt in stdin.keys().flatten() {
+                        if let Err(err) = tx.send(Event::Input(evt)) {
+                            eprintln!("{}", err);
+                            return;
+                        }
+                    }
+                })
+            };
+            let tick_handle = {
+                thread::spawn(move || loop {
+                    if let Err(err) = tx.send(Event::Tick) {
+                        eprintln!("{}", err);
+                        break;
+                    }
+                    thread::sleep(config.tick_rate);
+                })
+            };
+            Events {
+                rx,
+                input_handle,
+                tick_handle,
+            }
+        }
+
+        pub fn next(&self) -> Result<Event<Key>, mpsc::RecvError> {
+            self.rx.recv()
+        }
+    }
 }
