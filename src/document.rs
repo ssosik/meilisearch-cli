@@ -33,6 +33,8 @@ pub struct Document {
     pub tag: Vec<String>,
     #[serde(default)]
     pub weight: i32,
+    #[serde(default)]
+    pub filename: String,
 }
 
 impl fmt::Display for Document {
@@ -56,6 +58,7 @@ impl From<markdown_fm_doc::Document> for Document {
             tag: item.tags,
             title: item.title,
             subtitle: item.subtitle,
+            filename: item.filename,
             ..Default::default()
         }
     }
@@ -70,23 +73,24 @@ impl Serialize for Document {
         let mut s = if self.skip_serializing_body {
             serializer.serialize_struct("Document", 13)?
         } else {
-            let mut s = serializer.serialize_struct("Document", 14)?;
-            s.serialize_field("body", &self.body)?;
-            s
+            serializer.serialize_struct("Document", 14)?
         };
-        s.serialize_field("id", &self.id)?;
-        s.serialize_field("origid", &self.origid)?;
         s.serialize_field("authors", &self.authors)?;
         s.serialize_field("date", &self.date)?;
-        s.serialize_field("latest", &self.latest)?;
-        s.serialize_field("revision", &self.revision)?;
+        s.serialize_field("tag", &self.tag)?;
         s.serialize_field("title", &self.title)?;
+        s.serialize_field("subtitle", &self.subtitle)?;
+        s.serialize_field("id", &self.id)?;
+        s.serialize_field("origid", &self.origid)?;
+        s.serialize_field("weight", &self.weight)?;
+        s.serialize_field("revision", &self.revision)?;
+        s.serialize_field("latest", &self.latest)?;
         s.serialize_field("background_img", &self.background_img)?;
         s.serialize_field("links", &self.links)?;
         s.serialize_field("slug", &self.slug)?;
-        s.serialize_field("subtitle", &self.subtitle)?;
-        s.serialize_field("tag", &self.tag)?;
-        s.serialize_field("weight", &self.weight)?;
+        if !self.skip_serializing_body {
+            s.serialize_field("body", &self.body)?;
+        }
         s.end()
     }
 }

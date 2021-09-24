@@ -527,7 +527,7 @@ dependencies = [
 [[package]]
 name = "markdown-fm-doc"
 version = "0.1.0"
-source = "git+https://github.com/ssosik/markdown-fm-doc#817e4cb965e8ec522190ff914e8b5a9919c59d1b"
+source = "git+https://github.com/ssosik/markdown-fm-doc#3151a4669c9a40ad60dc024a76e5527095538cf2"
 dependencies = [
  "chrono",
  "color-eyre",
@@ -1076,9 +1076,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.76"
+version = "1.0.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6f107db402c2c2055242dbf4d2af0e69197202e9faacbef9571bbe47f5a1b84"
+checksum = "5239bc68e0fef57495900cfea4e8dc75596d9a319d7e16b1e0a440d24e6fe0a0"
 dependencies = [
  "proc-macro2",
  "quote",
