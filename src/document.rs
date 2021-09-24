@@ -39,8 +39,10 @@ pub struct Document {
 
 impl fmt::Display for Document {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let toml = toml::to_string(&self).unwrap();
-        write!(f, "+++\n{}+++\n{}", toml, self.body)
+        //let toml = toml::to_string(&self).unwrap();
+        //write!(f, "+++\n{}+++\n{}", toml, self.body)
+        let yaml = serde_yaml::to_string(&self).unwrap();
+        write!(f, "{}---\n{}", yaml, self.body)
     }
 }
 

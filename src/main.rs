@@ -94,7 +94,7 @@ fn main() -> Result<(), Report> {
                             .body(serde_json::to_string(&doc).unwrap())
                             .send()?;
                         if verbosity > 0 {
-                            println!("✅ {:?}", res,);
+                            println!("✅ {} {:?}", doc[0], res);
                         }
                     } else {
                         eprintln!("❌ Failed to load file {}", path.display());
