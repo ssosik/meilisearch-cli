@@ -210,50 +210,50 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/settings -XPOST -d@-
 }
 EOF
 
-cat <<EOF | curl http://localhost:7700/indexes/notes/documents -XPOST -d@-
-[
-  {
-        "id":"1234-5678-9012",
-        "origid":"1234-5678-9012",
-        "authors":["steve"],
-        "body":"\nsome content\n",
-        "date":"2021-09-17T09:28:33-04:00",
-        "revision": 1,
-        "tag":["test123"],
-        "title":"test document"
-  },
-  {
-        "id":"1235-5678-9012",
-        "origid":"1234-5678-9012",
-        "authors":["steve"],
-        "body":"\nsome content\n",
-        "date":"2021-09-18T09:28:33-04:00",
-        "revision": 2,
-        "tag":["test123"],
-        "title":"test NEW 1 document"
-  },
-  {
-        "id":"1236-5678-9012",
-        "origid":"1234-5678-9012",
-        "authors":["steve"],
-        "body":"\nsome content\n",
-        "date":"2021-09-20T09:28:34-04:00",
-        "revision": 3,
-        "tag":["test123"],
-        "title":"test NEW 2 document"
-  },
-  {
-        "id":"1237-5678-9012",
-        "origid":"1234-5678-9012",
-        "authors":["steve"],
-        "body":"\nsome content\n",
-        "date":"2021-09-20T09:28:34-04:00",
-        "revision": 4,
-        "tag":["test123"],
-        "title":"test NEW 3 document"
-  }
-]
-EOF
+#cat <<EOF | curl http://localhost:7700/indexes/notes/documents -XPOST -d@-
+#[
+#  {
+#        "id":"1234-5678-9012",
+#        "origid":"1234-5678-9012",
+#        "authors":["steve"],
+#        "body":"\nsome content\n",
+#        "date":"2021-09-17T09:28:33-04:00",
+#        "revision": 1,
+#        "tag":["test123"],
+#        "title":"test document"
+#  },
+#  {
+#        "id":"1235-5678-9012",
+#        "origid":"1234-5678-9012",
+#        "authors":["steve"],
+#        "body":"\nsome content\n",
+#        "date":"2021-09-18T09:28:33-04:00",
+#        "revision": 2,
+#        "tag":["test123"],
+#        "title":"test NEW 1 document"
+#  },
+#  {
+#        "id":"1236-5678-9012",
+#        "origid":"1234-5678-9012",
+#        "authors":["steve"],
+#        "body":"\nsome content\n",
+#        "date":"2021-09-20T09:28:34-04:00",
+#        "revision": 3,
+#        "tag":["test123"],
+#        "title":"test NEW 2 document"
+#  },
+#  {
+#        "id":"1237-5678-9012",
+#        "origid":"1234-5678-9012",
+#        "authors":["steve"],
+#        "body":"\nsome content\n",
+#        "date":"2021-09-20T09:28:34-04:00",
+#        "revision": 4,
+#        "tag":["test123"],
+#        "title":"test NEW 3 document"
+#  }
+#]
+#EOF
 
 # Import data
 ./target/debug/meilisearch-cli import '~/.local/vimdiary/*.md'

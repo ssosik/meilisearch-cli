@@ -22,7 +22,7 @@ use url::Url;
 // TODO Syntax highlighting in preview pane with https://github.com/trishume/syntect
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct ApiQuery {
+pub struct ApiQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     #[serde(rename = "q")]
@@ -41,12 +41,20 @@ struct ApiQuery {
     pub limit: u32,
 }
 
-fn default_limit() -> u32 {
-    10000
+impl ApiQuery {
+    pub fn new() -> Self {
+        let mut q = ApiQuery {
+            ..Default::default()
+        };
+
+        q.limit = 10000;
+
+        q
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct ApiResponse {
+pub struct ApiResponse {
     pub hits: Vec<document::Document>,
     #[serde(rename = "nbHits")]
     pub num_hits: u32,
@@ -386,16 +394,13 @@ pub fn query(
                         _ => {}
                     }
 
-                    let mut q = ApiQuery {
-                        query: Some(app.query_input.to_owned()),
-                        ..Default::default()
-                    };
+                    let mut q = ApiQuery::new();
+                    q.query = Some(app.query_input.to_owned());
 
                     let filter = app.filter_input.to_owned();
                     if filter.width() > 0 {
                         q.filter = Some(filter);
                     }
-                    q.limit = default_limit();
 
                     app.debug = serde_json::to_string(&q).unwrap();
 
@@ -421,7 +426,6 @@ pub fn query(
                             }
                         }
                         Err(e) => {
-                            //papp.error = e.to_string();
                             app.error = format!("Send failed: {:?}", e);
                             continue;
                         }
@@ -448,13 +452,6 @@ pub fn query(
                         }
                     };
                 }
-                //         Err(e) => {
-                //             tui.clear().unwrap();
-                //             drop(tui);
-                //             bail!("Failed to POST request {}", e.to_string());
-                //         }
-                //     };
-                // }
             }
         }
     }
