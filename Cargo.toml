@@ -22,4 +22,5 @@ tui = "0.16.0"
 unicode-width = "0.1.9"
 url = "2.2"
 uuid = { version = "0.8", features = ["v4", "serde"] }
+uuid-b64 = "0.1.1"
 

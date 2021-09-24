@@ -49,7 +49,7 @@ impl TerminalApp {
     pub fn get_selected(&mut self) -> Vec<String> {
         let ret: Vec<String> = Vec::new();
         if let Some(i) = self.selected_state.selected() {
-            vec![self.matches[i].id.to_hyphenated().to_string()]
+            vec![self.matches[i].id.to_owned()]
         } else {
             ret
         }

@@ -1,14 +1,14 @@
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use std::fmt;
-use uuid::Uuid;
+use uuid_b64::UuidB64;
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 pub struct Document {
     /// Required fields
-    pub id: Uuid,
+    pub id: String,
     // If updating an existing doc, this will point to the `id` of the original document, and
     // the revision field should be incremented
-    pub origid: Uuid,
+    pub origid: String,
     pub authors: Vec<String>,
     // Note the custom Serialize implementation below to skip the `body` if the
     // skip_serializing_body attribute is set
@@ -48,10 +48,10 @@ impl fmt::Display for Document {
 
 impl From<markdown_fm_doc::Document> for Document {
     fn from(item: markdown_fm_doc::Document) -> Self {
-        let uuid = Uuid::new_v4();
+        let uuid = UuidB64::new();
         Document {
-            id: uuid,
-            origid: uuid,
+            id: uuid.to_string(),
+            origid: uuid.to_string(),
             authors: vec![item.author],
             body: item.body,
             date: item.date,
