@@ -1,6 +1,6 @@
 use color_eyre::Report;
 use glob::{glob, Paths};
-use meilisearch_cli::document;
+use meilisearch_cli::{api, document};
 use reqwest::header::CONTENT_TYPE;
 use std::fs;
 use std::path::Path;
@@ -121,7 +121,7 @@ fn main() -> Result<(), Report> {
 
         let client = reqwest::blocking::Client::new();
         url_base.set_path("indexes/notes/search");
-        let q = interactive::ApiQuery::new();
+        let q = api::ApiQuery::new();
 
         // Split up the JSON decoding into two steps.
         // 1.) Get the text of the body.
@@ -150,7 +150,7 @@ fn main() -> Result<(), Report> {
         };
 
         // 2.) Parse the results as JSON.
-        match serde_json::from_str::<interactive::ApiResponse>(&response_body) {
+        match serde_json::from_str::<api::ApiResponse>(&response_body) {
             Ok(mut resp) => {
                 for entry in resp
                     .hits

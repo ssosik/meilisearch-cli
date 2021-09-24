@@ -1,8 +1,7 @@
 use color_eyre::Report;
 use eyre::bail;
-use meilisearch_cli::document;
+use meilisearch_cli::{api, document};
 use reqwest::header::CONTENT_TYPE;
-use serde::{Deserialize, Serialize};
 use std::io::{stdout, Write};
 use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
@@ -20,52 +19,6 @@ use url::Url;
 // TODO export documents with id/origid/latest into vimdiary git repo
 // TODO V1 Uuids type
 // TODO Syntax highlighting in preview pane with https://github.com/trishume/syntect
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct ApiQuery {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(rename = "q")]
-    pub query: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub filter: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub sort: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    #[serde(rename = "facetsDistribution")]
-    pub facets_distribution: Option<Vec<String>>,
-    #[serde(default)]
-    pub limit: u32,
-}
-
-impl ApiQuery {
-    pub fn new() -> Self {
-        let mut q = ApiQuery {
-            ..Default::default()
-        };
-
-        q.limit = 10000;
-
-        q
-    }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct ApiResponse {
-    pub hits: Vec<document::Document>,
-    #[serde(rename = "nbHits")]
-    pub num_hits: u32,
-    #[serde(rename = "exhaustiveNbHits")]
-    pub exhaustive_num_hits: bool,
-    pub query: String,
-    pub limit: u16,
-    pub offset: u32,
-    #[serde(rename = "processingTimeMs")]
-    pub processing_time_ms: u32,
-}
 
 /// TerminalApp holds the state of the application
 pub(crate) struct TerminalApp {
@@ -394,7 +347,7 @@ pub fn query(
                         _ => {}
                     }
 
-                    let mut q = ApiQuery::new();
+                    let mut q = api::ApiQuery::new();
                     q.query = Some(app.query_input.to_owned());
 
                     let filter = app.filter_input.to_owned();
@@ -432,7 +385,7 @@ pub fn query(
                     };
 
                     // 2.) Parse the results as JSON.
-                    match serde_json::from_str::<ApiResponse>(&response_body) {
+                    match serde_json::from_str::<api::ApiResponse>(&response_body) {
                         Ok(mut resp) => {
                             app.matches = resp
                                 .hits
