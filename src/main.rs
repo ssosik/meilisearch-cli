@@ -36,7 +36,9 @@ struct Opt {
 
 #[derive(Debug, StructOpt)]
 enum Subcommands {
-    /// Import frontmatter+markdown formatted files matching the unexpanded glob pattern
+    /// Import markdown-fm-doc formatted files matching the unexpanded glob pattern
+    ImportLegacyMd { globpath: String },
+    /// Import meilisearch-cli/Document formatted files matching the unexpanded glob pattern
     Import { globpath: String },
     /// Interactively query the server
     Query {},
@@ -78,7 +80,7 @@ fn main() -> Result<(), Report> {
     let _key = cli.value_of("key").unwrap();
     let mut url_base = Url::parse(host)?;
 
-    if let Some(cli) = cli.subcommand_matches("import") {
+    if let Some(cli) = cli.subcommand_matches("import-legacy-md") {
         let client = reqwest::blocking::Client::new();
         url_base.set_path("indexes/notes/documents");
         // Read the markdown files and post them to local Meilisearch
