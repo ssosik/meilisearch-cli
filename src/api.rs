@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::document;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ApiQuery {
@@ -46,5 +46,3 @@ pub struct ApiResponse {
     #[serde(rename = "processingTimeMs")]
     pub processing_time_ms: u32,
 }
-
-
