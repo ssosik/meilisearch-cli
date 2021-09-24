@@ -1,6 +1,6 @@
 use color_eyre::Report;
 use eyre::bail;
-use meilisearch_cli::{event::Event, event::Events, document};
+use meilisearch_cli::{document, event::Event, event::Events};
 use reqwest::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
 use std::io::{stdout, Write};

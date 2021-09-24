@@ -1,8 +1,8 @@
 use color_eyre::Report;
 use glob::{glob, Paths};
 use meilisearch_cli::document;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 use structopt::StructOpt;
 use url::Url;
 mod interactive;
