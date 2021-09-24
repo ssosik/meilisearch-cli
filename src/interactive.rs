@@ -37,6 +37,12 @@ struct ApiQuery {
     #[serde(default)]
     #[serde(rename = "facetsDistribution")]
     pub facets_distribution: Option<Vec<String>>,
+    #[serde(default)]
+    pub limit: u32,
+}
+
+fn default_limit() -> u32 {
+    10000
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -390,6 +396,7 @@ pub fn query(
                     if filter.width() > 0 {
                         q.filter = Some(filter);
                     }
+                    q.limit = default_limit();
 
                     app.debug = serde_json::to_string(&q).unwrap();
 
