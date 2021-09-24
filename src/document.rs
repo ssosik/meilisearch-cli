@@ -1,5 +1,6 @@
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use std::fmt;
+use unicode_width::UnicodeWidthStr;
 use uuid_b64::UuidB64;
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
@@ -82,15 +83,23 @@ impl Serialize for Document {
         s.serialize_field("tag", &self.tag)?;
         s.serialize_field("filename", &self.filename)?;
         s.serialize_field("title", &self.title)?;
-        s.serialize_field("subtitle", &self.subtitle)?;
+        if self.subtitle.width() > 0 {
+            s.serialize_field("subtitle", &self.subtitle)?;
+        };
         s.serialize_field("id", &self.id)?;
         s.serialize_field("origid", &self.origid)?;
         s.serialize_field("weight", &self.weight)?;
         s.serialize_field("revision", &self.revision)?;
         s.serialize_field("latest", &self.latest)?;
-        s.serialize_field("background_img", &self.background_img)?;
-        s.serialize_field("links", &self.links)?;
-        s.serialize_field("slug", &self.slug)?;
+        if self.background_img.width() > 0 {
+            s.serialize_field("background_img", &self.background_img)?;
+        };
+        if self.links.len() > 0 {
+            s.serialize_field("links", &self.links)?;
+        };
+        if self.slug.width() > 0 {
+            s.serialize_field("slug", &self.slug)?;
+        };
         if !self.skip_serializing_body {
             s.serialize_field("body", &self.body)?;
         }
