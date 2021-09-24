@@ -6,9 +6,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = "0.4"
 clap = "2.33.3"
 color-eyre = "0.5.11"
 eyre = "0.6.5"
+frontmatter = "0.4.0"
 glob = "0.3.0"
 markdown-fm-doc = { git = "https://github.com/ssosik/markdown-fm-doc" }
 reqwest = { version = "0.11.4", features = ["blocking", "json"] }
@@ -23,4 +25,5 @@ unicode-width = "0.1.9"
 url = "2.2"
 uuid = { version = "0.8", features = ["v4", "serde"] }
 uuid-b64 = "0.1.1"
+yaml-rust = "0.4.5"
 

@@ -1,7 +1,12 @@
-use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
-use std::fmt;
+use chrono::{DateTime, FixedOffset};
+use color_eyre::Report;
+use eyre::{eyre, Result};
+use serde::{de, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
+use std::io::{Error, ErrorKind};
+use std::{fmt, fs, io, marker::PhantomData};
 use unicode_width::UnicodeWidthStr;
 use uuid_b64::UuidB64;
+use yaml_rust::YamlEmitter;
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 pub struct Document {
@@ -17,6 +22,7 @@ pub struct Document {
     #[serde(default)]
     #[serde(skip)]
     pub skip_serializing_body: bool,
+    /// RFC 3339 based timestamp
     pub date: String,
     pub latest: bool,
     pub revision: u16,
@@ -31,6 +37,7 @@ pub struct Document {
     #[serde(default)]
     pub subtitle: String,
     #[serde(default)]
+    #[serde(deserialize_with = "string_or_list_string")]
     pub tag: Vec<String>,
     #[serde(default)]
     pub weight: i32,
@@ -38,10 +45,92 @@ pub struct Document {
     pub filename: String,
 }
 
+impl Document {
+    pub fn new() -> Self {
+        Document {
+            ..Default::default()
+        }
+    }
+
+    pub fn date_str(&self) -> Result<String, Report> {
+        if let Ok(t) = self.parse_date() {
+            let ret = t.with_timezone(&chrono::Utc).to_rfc3339();
+            return Ok(ret);
+        }
+        Err(eyre!("❌ Failed to convert path to date '{}'", &self.date))
+    }
+    pub fn parse_date(&self) -> Result<DateTime<FixedOffset>, Report> {
+        if let Ok(rfc3339) = DateTime::parse_from_rfc3339(&self.date) {
+            return Ok(rfc3339);
+        } else if let Ok(s) = DateTime::parse_from_str(&self.date, &String::from("%Y-%m-%dT%T%z")) {
+            return Ok(s);
+        }
+        eprintln!("❌ Failed to convert path to str");
+        Err(eyre!("❌ Failed to convert path to str"))
+    }
+
+    pub fn parse_file(path: &std::path::PathBuf) -> Result<Document, io::Error> {
+        let full_path = path.to_str().unwrap();
+        let s = fs::read_to_string(full_path)?;
+
+        let (yaml, content) = frontmatter::parse_and_find_content(&s).unwrap();
+        match yaml {
+            Some(yaml) => {
+                let mut out_str = String::new();
+                {
+                    let mut emitter = YamlEmitter::new(&mut out_str);
+                    emitter.dump(&yaml).unwrap(); // dump the YAML object to a String
+                }
+
+                let mut doc: Document = serde_yaml::from_str(&out_str).unwrap();
+                doc.filename = String::from(path.file_name().unwrap().to_str().unwrap());
+                doc.body = content.to_string();
+
+                Ok(doc)
+            }
+            None => Err(Error::new(
+                ErrorKind::Other,
+                format!("Failed to process file {}", path.display()),
+            )),
+        }
+    }
+}
+
+/// Support Deserializing a string into a list of string of length 1
+fn string_or_list_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct StringOrVec(PhantomData<Vec<String>>);
+
+    impl<'de> de::Visitor<'de> for StringOrVec {
+        type Value = Vec<String>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("string or list of strings")
+        }
+
+        // Value is a single string: return a Vec containing that single string
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(vec![value.to_owned()])
+        }
+
+        fn visit_seq<S>(self, visitor: S) -> Result<Self::Value, S::Error>
+        where
+            S: de::SeqAccess<'de>,
+        {
+            Deserialize::deserialize(de::value::SeqAccessDeserializer::new(visitor))
+        }
+    }
+
+    deserializer.deserialize_any(StringOrVec(PhantomData))
+}
+
 impl fmt::Display for Document {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        //let toml = toml::to_string(&self).unwrap();
-        //write!(f, "+++\n{}+++\n{}", toml, self.body)
         let yaml = serde_yaml::to_string(&self).unwrap();
         write!(f, "{}---\n{}", yaml, self.body)
     }
