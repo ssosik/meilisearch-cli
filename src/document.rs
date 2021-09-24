@@ -67,11 +67,10 @@ impl Serialize for Document {
     where
         S: Serializer,
     {
-        //let mut s = serializer.serialize_struct("Document", 12)?;
         let mut s = if self.skip_serializing_body {
-            serializer.serialize_struct("Document", 12)?
+            serializer.serialize_struct("Document", 13)?
         } else {
-            let mut s = serializer.serialize_struct("Document", 13)?;
+            let mut s = serializer.serialize_struct("Document", 14)?;
             s.serialize_field("body", &self.body)?;
             s
         };

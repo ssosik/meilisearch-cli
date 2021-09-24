@@ -425,8 +425,11 @@ pub fn query(
 
                     // 2.) Parse the results as JSON.
                     match serde_json::from_str::<ApiResponse>(&response_body) {
-                        Ok(resp) => {
-                            app.matches = resp.hits;
+                        Ok(mut resp) => {
+                            app.matches = resp.hits.iter_mut().map(|mut m| {
+                                m.skip_serializing_body = true;
+                                m.to_owned()
+                            }).collect::<Vec<_>>();
                             app.error = String::from("");
                         }
                         Err(e) => {
