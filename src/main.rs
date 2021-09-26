@@ -77,109 +77,46 @@ fn main() -> Result<(), Report> {
     let verbosity = cli.occurrences_of("verbosity");
     let host = cli.value_of("host").unwrap();
     let _key = cli.value_of("key").unwrap();
-    let mut url_base = Url::parse(host)?;
+    let url_base = Url::parse(host)?;
 
-    if let Some(cli) = cli.subcommand_matches("import-legacy-md") {
+    if let Some(cli) = cli.subcommand_matches("import") {
+        import(url_base, cli.value_of("globpath").unwrap(), verbosity as u8)?;
+    } else if let Some(cli) = cli.subcommand_matches("import-legacy-md") {
         legacy_import(url_base, cli.value_of("globpath").unwrap(), verbosity as u8)?;
-
-    } else if let Some(cli) = cli.subcommand_matches("import") {
-        let client = reqwest::blocking::Client::new();
-        url_base.set_path("indexes/notes/documents");
-        // Read the markdown files and post them to local Meilisearch
-        for entry in glob_files(cli.value_of("globpath").unwrap(), verbosity as u8)
-            .expect("Failed to read glob pattern")
-        {
-            match entry {
-                Ok(path) => {
-                    if let Ok(doc) = document::Document::parse_file(&path) {
-                        let doc: Vec<document::Document> = vec![doc];
-                        let res = client
-                            .post(url_base.as_ref())
-                            .body(serde_json::to_string(&doc).unwrap())
-                            .send()?;
-                        if verbosity > 0 {
-                            println!("✅ {} {:?}", doc[0], res);
-                        }
-                    } else {
-                        eprintln!("❌ Failed to load file {}", path.display());
-                    }
-                }
-
-                Err(e) => eprintln!("❌ {:?}", e),
-            }
-        }
-
     } else if let Some(_cli) = cli.subcommand_matches("query") {
-        interactive::setup_panic();
-
-        let client = reqwest::blocking::Client::new();
-        url_base.set_path("indexes/notes/search");
-        match interactive::query(client, url_base, verbosity as u8) {
-            Ok(res) => {
-                println!("Document IDs: {:?}", res);
-            }
-            Err(e) => {
-                eprintln!("❌ {:?}", e);
-                std::panic::panic_any(e);
-            }
-        };
-
+        interactive_query(url_base, verbosity as u8)?;
     } else if let Some(cli) = cli.subcommand_matches("dump") {
-        let path = cli.value_of("path").unwrap();
-        fs::create_dir_all(path)?;
-
-        let client = reqwest::blocking::Client::new();
-        url_base.set_path("indexes/notes/search");
-        let q = api::ApiQuery::new();
-
-        // Split up the JSON decoding into two steps.
-        // 1.) Get the text of the body.
-        let response_body = match client
-            .post(url_base.as_ref())
-            .body::<String>(serde_json::to_string(&q).unwrap())
-            .header(CONTENT_TYPE, "application/json")
-            .send()
-        {
-            Ok(resp) => {
-                if !resp.status().is_success() {
-                    eprintln!("Request failed: {:?}", resp);
-                }
-                match resp.text() {
-                    Ok(text) => text,
-                    Err(e) => {
-                        eprintln!("resp.text() failed: {:?}", e);
-                        String::from("")
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("Send failed: {:?}", e);
-                String::from("")
-            }
-        };
-
-        // 2.) Parse the results as JSON.
-        match serde_json::from_str::<api::ApiResponse>(&response_body) {
-            Ok(mut resp) => {
-                for entry in resp
-                    .hits
-                    .iter_mut()
-                    .map(|mut m| {
-                        m.skip_serializing_body = true;
-                        m.to_owned()
-                    })
-                    .collect::<Vec<_>>()
-                {
-                    let f = Path::new(path).join(&entry.filename);
-                    fs::write(f, entry.to_string())?;
-                }
-            }
-            Err(e) => {
-                eprintln!("Response not OK: {:?}", e);
-            }
-        };
+        dump(url_base, cli.value_of("path").unwrap(), verbosity as u8)?;
     }
 
+    Ok(())
+}
+
+// TODO can I use a trait to define this function once for both Document and markdown_fm_doc?
+fn import(mut url: Url, path: &str, verbosity: u8) -> Result<(), Report> {
+    let client = reqwest::blocking::Client::new();
+    url.set_path("indexes/notes/documents");
+    // Read the markdown files and post them to local Meilisearch
+    for entry in glob_files(path, verbosity as u8).expect("Failed to read glob pattern") {
+        match entry {
+            Ok(path) => {
+                if let Ok(doc) = document::Document::parse_file(&path) {
+                    let doc: Vec<document::Document> = vec![doc];
+                    let res = client
+                        .post(url.as_ref())
+                        .body(serde_json::to_string(&doc).unwrap())
+                        .send()?;
+                    if verbosity > 0 {
+                        println!("✅ {} {:?}", doc[0], res);
+                    }
+                } else {
+                    eprintln!("❌ Failed to load file {}", path.display());
+                }
+            }
+
+            Err(e) => eprintln!("❌ {:?}", e),
+        }
+    }
     Ok(())
 }
 
@@ -207,5 +144,78 @@ fn legacy_import(mut url: Url, path: &str, verbosity: u8) -> Result<(), Report> 
             Err(e) => eprintln!("❌ {:?}", e),
         }
     }
+    Ok(())
+}
+
+fn interactive_query(mut url: Url, verbosity: u8) -> Result<(), Report> {
+    interactive::setup_panic();
+
+    let client = reqwest::blocking::Client::new();
+    url.set_path("indexes/notes/search");
+    match interactive::query(client, url, verbosity as u8) {
+        Ok(res) => {
+            println!("Document IDs: {:?}", res);
+        }
+        Err(e) => {
+            eprintln!("❌ {:?}", e);
+            //std::panic::panic_any(e);
+        }
+    };
+    Ok(())
+}
+
+fn dump(mut url: Url, path: &str, _verbosity: u8) -> Result<(), Report> {
+    fs::create_dir_all(path)?;
+
+    let client = reqwest::blocking::Client::new();
+    url.set_path("indexes/notes/search");
+    let q = api::ApiQuery::new();
+
+    // Split up the JSON decoding into two steps.
+    // 1.) Get the text of the body.
+    let response_body = match client
+        .post(url.as_ref())
+        .body::<String>(serde_json::to_string(&q).unwrap())
+        .header(CONTENT_TYPE, "application/json")
+        .send()
+    {
+        Ok(resp) => {
+            if !resp.status().is_success() {
+                eprintln!("Request failed: {:?}", resp);
+            }
+            match resp.text() {
+                Ok(text) => text,
+                Err(e) => {
+                    eprintln!("resp.text() failed: {:?}", e);
+                    String::from("")
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Send failed: {:?}", e);
+            String::from("")
+        }
+    };
+
+    // 2.) Parse the results as JSON.
+    match serde_json::from_str::<api::ApiResponse>(&response_body) {
+        Ok(mut resp) => {
+            for entry in resp
+                .hits
+                .iter_mut()
+                .map(|mut m| {
+                    m.skip_serializing_body = true;
+                    m.to_owned()
+                })
+                .collect::<Vec<_>>()
+            {
+                let f = Path::new(path).join(&entry.filename);
+                fs::write(f, entry.to_string())?;
+            }
+        }
+        Err(e) => {
+            eprintln!("Response not OK: {:?}", e);
+        }
+    };
     Ok(())
 }
