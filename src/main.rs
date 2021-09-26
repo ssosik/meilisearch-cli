@@ -184,31 +184,28 @@ fn main() -> Result<(), Report> {
 }
 
 fn legacy_import(mut url: Url, path: &str, verbosity: u8) -> Result<(), Report> {
-        let client = reqwest::blocking::Client::new();
-        url.set_path("indexes/notes/documents");
-        // Read the markdown files and post them to local Meilisearch
-        for entry in glob_files(path, verbosity as u8)
-            .expect("Failed to read glob pattern")
-        {
-            match entry {
-                Ok(path) => {
-                    if let Ok(mdfm_doc) = markdown_fm_doc::parse_file(&path) {
-                        let doc: Vec<document::Document> = vec![mdfm_doc.into()];
-                        let res = client
-                            .post(url.as_ref())
-                            .body(serde_json::to_string(&doc).unwrap())
-                            .send()?;
-                        if verbosity > 0 {
-                            println!("✅ {} {:?}", doc[0], res);
-                        }
-                    } else {
-                        eprintln!("❌ Failed to load file {}", path.display());
+    let client = reqwest::blocking::Client::new();
+    url.set_path("indexes/notes/documents");
+    // Read the markdown files and post them to local Meilisearch
+    for entry in glob_files(path, verbosity as u8).expect("Failed to read glob pattern") {
+        match entry {
+            Ok(path) => {
+                if let Ok(mdfm_doc) = markdown_fm_doc::parse_file(&path) {
+                    let doc: Vec<document::Document> = vec![mdfm_doc.into()];
+                    let res = client
+                        .post(url.as_ref())
+                        .body(serde_json::to_string(&doc).unwrap())
+                        .send()?;
+                    if verbosity > 0 {
+                        println!("✅ {} {:?}", doc[0], res);
                     }
+                } else {
+                    eprintln!("❌ Failed to load file {}", path.display());
                 }
-
-                Err(e) => eprintln!("❌ {:?}", e),
             }
-        }
-        Ok(())
-}
 
+            Err(e) => eprintln!("❌ {:?}", e),
+        }
+    }
+    Ok(())
+}
