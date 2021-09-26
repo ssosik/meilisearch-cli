@@ -14,10 +14,7 @@ use tui::{
 use unicode_width::UnicodeWidthStr; // Provides `width()` method on String
 use url::Url;
 
-// TODO preview frontmatter in YAML not TOML
 // TODO get server response debug area working
-// TODO export documents with id/origid/latest into vimdiary git repo
-// TODO V1 Uuids type
 // TODO Syntax highlighting in preview pane with https://github.com/trishume/syntect
 
 /// TerminalApp holds the state of the application
@@ -284,7 +281,6 @@ pub fn query(
             drop(tui);
             bail!("Failed to draw TUI App {}", e.to_string());
         }
-        //.expect("Failed to draw TUI App");
 
         // Handle input
         match events.next() {
@@ -296,7 +292,6 @@ pub fn query(
             Ok(ev) => {
                 if let event::Event::Input(input) = ev {
                     // TODO add support for:
-                    //  - tab to switch between input boxes
                     //  - ctrl-e to open selected in $EDITOR, then submit on file close
                     //  - ctrl-v to open selected in $LESS
                     //  - pageup/pagedn/home/end for navigating displayed selection

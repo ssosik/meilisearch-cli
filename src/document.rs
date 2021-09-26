@@ -182,16 +182,16 @@ impl Serialize for Document {
         } else {
             serializer.serialize_struct("Document", 15)?
         };
-        s.serialize_field("authors", &self.authors)?;
+        s.serialize_field("title", &self.title)?;
+        if self.subtitle.width() > 0 {
+            s.serialize_field("subtitle", &self.subtitle)?;
+        };
         s.serialize_field("date", &self.date)?;
         s.serialize_field("tag", &self.tag)?;
         if !self.skip_serializing_body {
             s.serialize_field("filename", &self.filename)?;
         };
-        s.serialize_field("title", &self.title)?;
-        if self.subtitle.width() > 0 {
-            s.serialize_field("subtitle", &self.subtitle)?;
-        };
+        s.serialize_field("authors", &self.authors)?;
         s.serialize_field("id", &self.id)?;
         s.serialize_field("origid", &self.origid)?;
         s.serialize_field("weight", &self.weight)?;
