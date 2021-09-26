@@ -115,7 +115,7 @@ fn main() -> Result<(), Report> {
             match entry {
                 Ok(path) => {
                     if let Ok(doc) = document::Document::parse_file(&path) {
-                        let doc: Vec<document::Document> = vec![doc.into()];
+                        let doc: Vec<document::Document> = vec![doc];
                         let res = client
                             .post(url_base.as_ref())
                             .body(serde_json::to_string(&doc).unwrap())
