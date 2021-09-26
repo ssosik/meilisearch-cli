@@ -10,11 +10,13 @@ use yaml_rust::YamlEmitter;
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 pub struct Document {
-    /// Required fields
+    #[serde(default)]
     pub id: String,
     // If updating an existing doc, this will point to the `id` of the original document, and
     // the revision field should be incremented
+    #[serde(default)]
     pub origid: String,
+    #[serde(default)]
     pub authors: Vec<String>,
     // Note the custom Serialize implementation below to skip the `body` if the
     // skip_serializing_body attribute is set
@@ -25,11 +27,12 @@ pub struct Document {
     pub skip_serializing_body: bool,
     /// RFC 3339 based timestamp
     pub date: String,
+    #[serde(default)]
     #[serde(skip_serializing_if = "is_false")]
     pub latest: bool,
+    #[serde(default)]
     pub revision: u16,
     pub title: String,
-    /// Optional fields
     #[serde(default)]
     pub background_img: String,
     #[serde(default)]
@@ -93,7 +96,7 @@ impl Document {
                 let mut doc: Document = match serde_yaml::from_str(&out_str) {
                     Ok(d) => d,
                     Err(e) => {
-                        eprintln!("Error reading yaml file {}: {}", full_path, out_str);
+                        eprintln!("Error reading yaml file {}: {:?} {}", full_path, e, out_str);
                         return Err(Error::new(
                             ErrorKind::Other,
                             format!(
@@ -106,6 +109,12 @@ impl Document {
                 };
                 doc.filename = String::from(path.file_name().unwrap().to_str().unwrap());
                 doc.body = content.to_string();
+                if doc.id.width() == 0 {
+                    doc.latest = true;
+                    let uuid = UuidB64::new();
+                    doc.id = uuid.to_string();
+                    doc.origid = uuid.to_string();
+                }
 
                 Ok(doc)
             }
