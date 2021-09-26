@@ -84,7 +84,20 @@ impl Document {
                     emitter.dump(&yaml).unwrap(); // dump the YAML object to a String
                 }
 
-                let mut doc: Document = serde_yaml::from_str(&out_str).unwrap();
+                let mut doc: Document = match serde_yaml::from_str(&out_str) {
+                    Ok(d) => d,
+                    Err(e) => {
+                        eprintln!("Error reading yaml file {}: {}", full_path, out_str);
+                        return Err(Error::new(
+                            ErrorKind::Other,
+                            format!(
+                                "Error reading yaml file {}: {}",
+                                path.display(),
+                                e.to_string()
+                            ),
+                        ));
+                    }
+                };
                 doc.filename = String::from(path.file_name().unwrap().to_str().unwrap());
                 doc.body = content.to_string();
 
