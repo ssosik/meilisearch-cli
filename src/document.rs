@@ -25,6 +25,7 @@ pub struct Document {
     pub skip_serializing_body: bool,
     /// RFC 3339 based timestamp
     pub date: String,
+    #[serde(skip_serializing_if = "is_false")]
     pub latest: bool,
     pub revision: u16,
     pub title: String,
@@ -44,6 +45,11 @@ pub struct Document {
     pub weight: i32,
     #[serde(default)]
     pub filename: String,
+}
+
+#[allow(dead_code)]
+fn is_false(v: &bool) -> bool {
+    *v
 }
 
 impl Document {
