@@ -1,0 +1,16 @@
+WHITESPACE = _{ " "|"\t"|"\n"|"\r" }
+
+or = { "|" }
+and = { "+" }
+operator = { (or | and) }
+
+char = { ASCII_ALPHANUMERIC | "." | "-" | "_" | "/" }
+
+tag = { char+ }
+not_tag = { "!" ~ tag }
+
+expression = {
+    SOI ~
+    ((not_tag | tag) ~ operator?)+ ~
+    EOI
+}

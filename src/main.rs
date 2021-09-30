@@ -8,6 +8,16 @@ use structopt::StructOpt;
 use url::Url;
 mod interactive;
 
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
+
+use pest::{Parser, iterators as pest_iterators};
+
+#[derive(Parser)]
+#[grammar = "filter.pest"]
+pub struct Filter;
+
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "meilisearch-cli",
@@ -48,6 +58,8 @@ enum Subcommands {
     New {},
     /// Adds TOML-based document
     Add {},
+    /// WIP pest
+    Pest {},
 }
 
 pub fn glob_files(source: &str, verbosity: u8) -> Result<Paths, Box<dyn std::error::Error>> {
@@ -87,9 +99,64 @@ fn main() -> Result<(), Report> {
         interactive_query(url_base, verbosity as u8)?;
     } else if let Some(cli) = cli.subcommand_matches("dump") {
         dump(url_base, cli.value_of("path").unwrap(), verbosity as u8)?;
+    } else if let Some(_cli) = cli.subcommand_matches("pest") {
+        //let expr = Filter::parse(Rule::expression, "!foo || bar")
+        let expr = Filter::parse(Rule::expression, "foo")
+            .expect("unsuccessful parse") // unwrap the parse result
+            .next()
+            .unwrap();
+        if let Ok(s) = process_filter(expr) {
+            println!("FILTER: {}", s);
+        }
+        let expr = Filter::parse(Rule::expression, "!foo | bar + !qux")
+            .expect("unsuccessful parse") // unwrap the parse result
+            .next()
+            .unwrap();
+        if let Ok(s) = process_filter(expr) {
+            println!("FILTER: {}", s);
+        }
+        let expr = Filter::parse(Rule::expression, "bar + !qux")
+            .expect("unsuccessful parse") // unwrap the parse result
+            .next()
+            .unwrap();
+        if let Ok(s) = process_filter(expr) {
+            println!("FILTER: {}", s);
+        }
     }
 
     Ok(())
+}
+
+type PestPair<'a> = pest_iterators::Pair<'a, Rule>;
+
+fn process_filter(expr: PestPair<'_>) -> Result<String, Report> {
+    let mut filter = String::from("");
+    for t in expr.into_inner() {
+        match t.as_rule() {
+            Rule::tag => {
+                filter.push_str("tag=");
+                filter.push_str(t.as_str());
+            }
+            Rule::not_tag => {
+                filter.push_str("tag!=");
+                for i in t.into_inner() {
+                    filter.push_str(i.as_str());
+                }
+            }
+            Rule::operator => match t.into_inner().next().unwrap().as_rule() {
+                Rule::and => {
+                    filter.push_str(" AND ");
+                }
+                Rule::or => {
+                    filter.push_str(" OR ");
+                }
+                _ => unreachable!(),
+            },
+            Rule::EOI => break,
+            _ => unreachable!(),
+        }
+    }
+    Ok(filter)
 }
 
 // TODO can I use a trait to define this function once for both Document and markdown_fm_doc?
