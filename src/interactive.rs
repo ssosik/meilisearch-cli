@@ -11,7 +11,6 @@ use tui::{
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
 };
-use unicode_width::UnicodeWidthStr; // Provides `width()` method on String
 use url::Url;
 
 // TODO Syntax highlighting in preview pane with https://github.com/trishume/syntect
@@ -331,10 +330,7 @@ pub fn query(
                     let mut q = api::ApiQuery::new();
                     q.query = Some(app.query_input.to_owned());
 
-                    let filter = app.filter_input.to_owned();
-                    if filter.width() > 0 {
-                        q.filter = Some(filter);
-                    }
+                    q.process_filter(app.filter_input.to_owned());
 
                     app.debug = serde_json::to_string(&q).unwrap();
 

@@ -1,5 +1,6 @@
 use crate::document;
 use serde::{Deserialize, Serialize};
+use unicode_width::UnicodeWidthStr; // Provides `width()` method on String
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ApiQuery {
@@ -30,6 +31,12 @@ impl ApiQuery {
         q.limit = 10000;
 
         q
+    }
+
+    pub fn process_filter(&mut self, s: String) {
+        if s.width() > 0 {
+            self.filter = Some(s);
+        }
     }
 }
 
