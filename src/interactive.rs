@@ -14,7 +14,6 @@ use tui::{
 use unicode_width::UnicodeWidthStr; // Provides `width()` method on String
 use url::Url;
 
-// TODO get server response debug area working
 // TODO Syntax highlighting in preview pane with https://github.com/trishume/syntect
 
 /// TerminalApp holds the state of the application
@@ -33,8 +32,6 @@ pub(crate) struct TerminalApp {
     pub(crate) error: String,
     /// Display the serialized payload to send to the server
     pub(crate) debug: String,
-    /// Report the server response
-    pub(crate) response: String,
     // TODO Add fields for sort expression
     inp_idx: usize,
     // Length here should stay in sync with the number of editable areas
@@ -98,7 +95,6 @@ impl Default for TerminalApp {
             selected_state: ListState::default(),
             error: String::new(),
             debug: String::new(),
-            response: String::new(),
             inp_idx: 0,
             inp_widths: [0, 0],
         }
@@ -151,12 +147,10 @@ pub fn query(
                         [
                             // Content Preview Area
                             Constraint::Percentage(85),
-                            // Server Response area
-                            Constraint::Percentage(5),
                             // Debug Message Area
                             Constraint::Percentage(5),
                             // Error Message Area
-                            Constraint::Percentage(5),
+                            Constraint::Percentage(10),
                         ]
                         .as_ref(),
                     )
@@ -246,16 +240,6 @@ pub fn query(
             );
 
             if verbosity > 0 {
-                // Area to display server response
-                let response = Paragraph::new(app.response.as_ref())
-                    .style(Style::default().fg(Color::White).bg(Color::Black))
-                    .block(
-                        Block::default()
-                            .title("Server Response")
-                            .borders(Borders::ALL),
-                    );
-                f.render_widget(response, main[1]);
-
                 // Area to display debug messages
                 let debug = Paragraph::new(app.debug.as_ref())
                     .style(Style::default().fg(Color::Green).bg(Color::Black))
@@ -263,8 +247,9 @@ pub fn query(
                         Block::default()
                             .title("Debug messages")
                             .borders(Borders::ALL),
-                    );
-                f.render_widget(debug, main[2]);
+                    )
+                    .wrap(Wrap { trim: true });
+                f.render_widget(debug, main[1]);
 
                 // Area to display Error messages
                 let error = Paragraph::new(app.error.as_ref())
@@ -273,8 +258,9 @@ pub fn query(
                         Block::default()
                             .title("Error messages")
                             .borders(Borders::ALL),
-                    );
-                f.render_widget(error, main[3]);
+                    )
+                    .wrap(Wrap { trim: true });
+                f.render_widget(error, main[2]);
             }
         }) {
             tui.clear().unwrap();
