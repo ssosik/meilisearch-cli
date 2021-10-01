@@ -51,6 +51,8 @@ impl ApiQuery {
         // Iterate over each inner piece of the parsed expression and build the
         // filter string to set on the meilisearch query
         for t in expr.into_inner() {
+            // TODO add support for subexpressions in parens
+            // TODO add support for single-quoted tags to enable tags with spaces
             // TODO add support for dates, like:
             //  - 2019 : match all docs within date in the year
             //  - 2019-10 : match all docs within date in the year and month

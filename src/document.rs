@@ -8,6 +8,7 @@ use unicode_width::UnicodeWidthStr;
 use uuid_b64::UuidB64;
 use yaml_rust::YamlEmitter;
 
+// TODO add `backlink` field for hierarchical linking
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 pub struct Document {
     #[serde(default)]

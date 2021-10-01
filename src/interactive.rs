@@ -287,7 +287,6 @@ pub fn query(
                     match input {
                         Key::Char('\n') => {
                             // Select choice
-                            // TODO emit Doc ID
                             // TODO increment weight for selected doc
                             break;
                         }
