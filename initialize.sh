@@ -20,14 +20,11 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/settings -XPOST -d@-
   ],
   "rankingRules": [
     "words",
+    "sort",
     "typo",
     "proximity",
     "attribute",
-    "sort",
-    "exactness",
-    "weight:desc",
-    "date:desc",
-    "revision:desc"
+    "exactness"
   ],
   "stopWords": [
     "a",
