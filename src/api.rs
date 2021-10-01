@@ -22,6 +22,13 @@ pub struct ApiQuery {
     pub limit: u32,
 }
 
+use pest::Parser; // Provides the generated 'parse()' method on Filter struct
+use pest_derive::Parser; // Provides the Parser deriver, grammer autogeneration, and Rules
+
+#[derive(Parser)]
+#[grammar = "filter.pest"]
+pub struct Filter;
+
 impl ApiQuery {
     pub fn new() -> Self {
         let mut q = ApiQuery {
@@ -34,8 +41,53 @@ impl ApiQuery {
     }
 
     pub fn process_filter(&mut self, s: String) {
-        if s.width() > 0 {
-            self.filter = Some(s);
+        // If the supplied string doesn't parse with our expected grammer, just return
+        let mut expr = match Filter::parse(Rule::expression, s.as_str()) {
+            Ok(f) => f,
+            Err(_) => return,
+        };
+        let expr = expr.next().unwrap();
+        let mut filter = String::from(""); // String to set on self.filter
+        // Iterate over each inner piece of the parsed expression and build the
+        // filter string to set on the meilisearch query
+        for t in expr.into_inner() {
+            // TODO add support for dates, like:
+            //  - 2019 : match all docs within date in the year
+            //  - 2019-10 : match all docs within date in the year and month
+            //  - 2019-10-30 : match all docs within date in the year, month and dat
+            //  - 1h : match all docs within the past hour
+            //  - 2d : match all docs within the 2 days
+            //  - 3w : match all docs within the 3 weeks
+            //  - 4m : match all docs within the 4 months
+            //  - 5y : match all docs within the 5 years
+            //  For all of the above, add '<' and '>' prefixed variants for
+            //    older than and newer than constraints
+            match t.as_rule() {
+                Rule::tag => {
+                    filter.push_str("tag=");
+                    filter.push_str(t.as_str());
+                }
+                Rule::not_tag => {
+                    filter.push_str("tag!=");
+                    for i in t.into_inner() {
+                        filter.push_str(i.as_str());
+                    }
+                }
+                Rule::operator => match t.into_inner().next().unwrap().as_rule() {
+                    Rule::and => {
+                        filter.push_str(" AND ");
+                    }
+                    Rule::or => {
+                        filter.push_str(" OR ");
+                    }
+                    _ => unreachable!(),
+                },
+                Rule::EOI => break,
+                _ => unreachable!(),
+            }
+        }
+        if filter.width() > 0 {
+            self.filter = Some(filter);
         }
     }
 }
