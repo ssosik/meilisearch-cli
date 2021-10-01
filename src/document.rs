@@ -1,8 +1,9 @@
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use color_eyre::Report;
 use eyre::{eyre, Result};
 use serde::{de, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use std::io::{Error, ErrorKind};
+use std::str::FromStr;
 use std::{fmt, fs, io, marker::PhantomData};
 use unicode_width::UnicodeWidthStr;
 use uuid_b64::UuidB64;
@@ -26,8 +27,9 @@ pub struct Document {
     #[serde(default)]
     #[serde(skip)]
     pub skip_serializing_body: bool,
-    /// RFC 3339 based timestamp
-    pub date: String,
+    /// Epoch seconds
+    #[serde(deserialize_with = "date_deserializer")]
+    pub date: Date,
     #[serde(default)]
     #[serde(skip_serializing_if = "is_false")]
     pub latest: bool,
@@ -63,24 +65,6 @@ impl Document {
         }
     }
 
-    pub fn date_str(&self) -> Result<String, Report> {
-        if let Ok(t) = self.parse_date() {
-            let ret = t.with_timezone(&chrono::Utc).to_rfc3339();
-            return Ok(ret);
-        }
-        Err(eyre!("❌ Failed to convert path to date '{}'", &self.date))
-    }
-
-    pub fn parse_date(&self) -> Result<DateTime<FixedOffset>, Report> {
-        if let Ok(rfc3339) = DateTime::parse_from_rfc3339(&self.date) {
-            return Ok(rfc3339);
-        } else if let Ok(s) = DateTime::parse_from_str(&self.date, &String::from("%Y-%m-%dT%T%z")) {
-            return Ok(s);
-        }
-        eprintln!("❌ Failed to convert path to str");
-        Err(eyre!("❌ Failed to convert path to str"))
-    }
-
     pub fn parse_file(path: &std::path::Path) -> Result<Document, io::Error> {
         let full_path = path.to_str().unwrap();
         let s = fs::read_to_string(full_path)?;
@@ -97,14 +81,10 @@ impl Document {
                 let mut doc: Document = match serde_yaml::from_str(&out_str) {
                     Ok(d) => d,
                     Err(e) => {
-                        eprintln!("Error reading yaml file {}: {:?} {}", full_path, e, out_str);
+                        eprintln!("Error reading yaml {}: {:?} {}", full_path, e, out_str);
                         return Err(Error::new(
                             ErrorKind::Other,
-                            format!(
-                                "Error reading yaml file {}: {}",
-                                path.display(),
-                                e.to_string()
-                            ),
+                            format!("Error reading yaml {}: {}", path.display(), e.to_string()),
                         ));
                     }
                 };
@@ -175,7 +155,7 @@ impl From<markdown_fm_doc::Document> for Document {
             origid: uuid.to_string(),
             authors: vec![item.author],
             body: item.body,
-            date: item.date,
+            date: Date::from_str(&item.date).unwrap(),
             latest: true,
             revision: 1,
             tag: item.tags,
@@ -202,7 +182,11 @@ impl Serialize for Document {
         if self.subtitle.width() > 0 {
             s.serialize_field("subtitle", &self.subtitle)?;
         };
-        s.serialize_field("date", &self.date)?;
+        if self.skip_serializing_body {
+            s.serialize_field("date", &format!("{}", &self.date))?;
+        } else {
+            s.serialize_field("date", &self.date)?;
+        }
         s.serialize_field("tag", &self.tag)?;
         if !self.skip_serializing_body {
             s.serialize_field("filename", &self.filename)?;
@@ -227,4 +211,95 @@ impl Serialize for Document {
         }
         s.end()
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Date(i64);
+
+impl Date {
+    pub fn new(d: i64) -> Date {
+        Date(d)
+    }
+}
+
+impl fmt::Display for Date {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Create a NaiveDateTime from the timestamp
+        let naive = NaiveDateTime::from_timestamp(self.0, 0);
+
+        // Create a normal DateTime from the NaiveDateTime
+        let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+
+        // Format the datetime how you want
+        write!(f, "{}", datetime.format("%Y-%m-%d %H:%M:%S"))
+    }
+}
+
+impl FromStr for Date {
+    type Err = Report;
+
+    fn from_str(s: &str) -> Result<Date, Self::Err> {
+        if let Ok(rfc3339) = DateTime::parse_from_rfc3339(s) {
+            Ok(Date::new(rfc3339.timestamp()))
+        } else if let Ok(s) = DateTime::parse_from_str(s, &String::from("%Y-%m-%dT%T%z")) {
+            Ok(Date::new(s.timestamp()))
+        } else if let Ok(s) = s.parse::<i64>() {
+            Ok(Date::new(s))
+        } else {
+            Err(eyre!("❌ Failed to convert {} to str", s))
+        }
+    }
+}
+
+/// Support Deserializing a date from either a string or i64
+fn date_deserializer<'de, D>(deserializer: D) -> Result<Date, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct StringOrVec(PhantomData<Vec<String>>);
+
+    impl<'de> de::Visitor<'de> for StringOrVec {
+        type Value = Date;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("Epoch seconds as i64 or RFC 3339 time string")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Date::from_str(value).unwrap())
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Date::new(value))
+        }
+
+        fn visit_i32<E>(self, value: i32) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Date::new(value as i64))
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Date::new(value as i64))
+        }
+
+        fn visit_u32<E>(self, value: u32) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Date::new(value as i64))
+        }
+    }
+
+    deserializer.deserialize_any(StringOrVec(PhantomData))
 }
