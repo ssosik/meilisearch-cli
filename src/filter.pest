@@ -2,15 +2,29 @@ WHITESPACE = _{ " "|"\t"|"\n"|"\r" }
 
 or = { "|" }
 and = { "+" }
-operator = { (or | and) }
+operator = { or | and }
+
+gt = { ">" }
+lt = { "<" }
+comparator = { gt | lt }
 
 char = { ASCII_ALPHANUMERIC | "." | "-" | "_" | "/" }
 
 tag = { char+ }
 not_tag = { "!" ~ tag }
 
+year = { ASCII_DIGIT ~ ASCII_DIGIT ~ ASCII_DIGIT ~ ASCII_DIGIT }
+year_month = { year ~ "-" ~ ASCII_DIGIT ~ ASCII_DIGIT }
+year_month_day = { year_month ~ "-" ~ ASCII_DIGIT ~ ASCII_DIGIT }
+date = { comparator? ~ (year_month_day | year_month | year) }
+
+duration_designator = { "h" | "d" | "w" | "m" | "y" }
+duration_length = { ASCII_DIGIT+ ~ duration_designator }
+prefixed_duration = { comparator ~ duration_length }
+duration = { prefixed_duration | duration_length }
+
 expression = {
     SOI ~
-    ((not_tag | tag) ~ operator?)+ ~
+    ((date | duration | not_tag | tag) ~ operator?)+ ~
     EOI
 }

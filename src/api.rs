@@ -64,12 +64,28 @@ impl ApiQuery {
             //  For all of the above, add '<' and '>' prefixed variants for
             //    older than and newer than constraints
             match t.as_rule() {
+                Rule::date => {
+                    filter.push_str("date ");
+                    for i in t.into_inner() {
+                        match i.as_rule() {
+                            Rule::comparator => match i.into_inner().next().unwrap().as_rule() {
+                                Rule::gt => filter.push_str("> "),
+                                Rule::lt => filter.push_str("< "),
+                                _ => unreachable!(),
+                            }
+                            Rule::year_month_day | Rule::year_month | Rule::year => {
+                                filter.push_str(i.as_str());
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                }
                 Rule::tag => {
-                    filter.push_str("tag=");
+                    filter.push_str("tag = ");
                     filter.push_str(t.as_str());
                 }
                 Rule::not_tag => {
-                    filter.push_str("tag!=");
+                    filter.push_str("tag != ");
                     for i in t.into_inner() {
                         filter.push_str(i.as_str());
                     }
