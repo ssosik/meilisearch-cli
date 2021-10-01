@@ -31,13 +31,11 @@ pub struct Filter;
 
 impl ApiQuery {
     pub fn new() -> Self {
-        let mut q = ApiQuery {
+        ApiQuery {
+            sort: Some(vec!["date:desc".to_owned()]),
+            limit: 10000,
             ..Default::default()
-        };
-
-        q.limit = 10000;
-
-        q
+        }
     }
 
     pub fn process_filter(&mut self, s: String) {
@@ -47,7 +45,8 @@ impl ApiQuery {
             Err(_) => return,
         };
         let expr = expr.next().unwrap();
-        let mut filter = String::from(""); // String to set on self.filter
+        // String to set on self.filter
+        let mut filter = String::from("");
         // Iterate over each inner piece of the parsed expression and build the
         // filter string to set on the meilisearch query
         for t in expr.into_inner() {

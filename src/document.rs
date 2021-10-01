@@ -63,24 +63,6 @@ impl Document {
         }
     }
 
-    pub fn date_str(&self) -> Result<String, Report> {
-        if let Ok(t) = self.parse_date() {
-            let ret = t.with_timezone(&chrono::Utc).to_rfc3339();
-            return Ok(ret);
-        }
-        Err(eyre!("❌ Failed to convert path to date '{}'", &self.date))
-    }
-
-    pub fn parse_date(&self) -> Result<DateTime<FixedOffset>, Report> {
-        if let Ok(rfc3339) = DateTime::parse_from_rfc3339(&self.date) {
-            return Ok(rfc3339);
-        } else if let Ok(s) = DateTime::parse_from_str(&self.date, &String::from("%Y-%m-%dT%T%z")) {
-            return Ok(s);
-        }
-        eprintln!("❌ Failed to convert path to str");
-        Err(eyre!("❌ Failed to convert path to str"))
-    }
-
     pub fn parse_file(path: &std::path::Path) -> Result<Document, io::Error> {
         let full_path = path.to_str().unwrap();
         let s = fs::read_to_string(full_path)?;
@@ -97,14 +79,10 @@ impl Document {
                 let mut doc: Document = match serde_yaml::from_str(&out_str) {
                     Ok(d) => d,
                     Err(e) => {
-                        eprintln!("Error reading yaml file {}: {:?} {}", full_path, e, out_str);
+                        eprintln!("Error reading yaml {}: {:?} {}", full_path, e, out_str);
                         return Err(Error::new(
                             ErrorKind::Other,
-                            format!(
-                                "Error reading yaml file {}: {}",
-                                path.display(),
-                                e.to_string()
-                            ),
+                            format!("Error reading yaml {}: {}", path.display(), e.to_string()),
                         ));
                     }
                 };
