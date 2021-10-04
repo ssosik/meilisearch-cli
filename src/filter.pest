@@ -13,15 +13,14 @@ char = { ASCII_ALPHANUMERIC | "." | "-" | "_" | "/" }
 tag = { char+ }
 not_tag = { "!" ~ tag }
 
-year = { ASCII_DIGIT ~ ASCII_DIGIT ~ ASCII_DIGIT ~ ASCII_DIGIT }
-year_month = { year ~ "-" ~ ASCII_DIGIT ~ ASCII_DIGIT }
-year_month_day = { year_month ~ "-" ~ ASCII_DIGIT ~ ASCII_DIGIT }
+year = { ASCII_DIGIT{4} }
+year_month = { year ~ "-" ~ ASCII_DIGIT{1,2} }
+year_month_day = { year_month ~ "-" ~ ASCII_DIGIT{1,2} }
 date = { comparator? ~ (year_month_day | year_month | year) }
 
 duration_designator = { "h" | "d" | "w" | "m" | "y" }
 duration_length = { ASCII_DIGIT+ ~ duration_designator }
-prefixed_duration = { comparator ~ duration_length }
-duration = { prefixed_duration | duration_length }
+duration = { comparator? ~ duration_length }
 
 expression = {
     SOI ~
