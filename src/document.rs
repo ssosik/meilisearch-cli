@@ -1,8 +1,8 @@
 use crate::date::{date_deserializer, Date};
-use std::str::FromStr;
 use eyre::Result;
 use serde::{de, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use std::io::{Error, ErrorKind};
+use std::str::FromStr;
 use std::{fmt, fs, io, marker::PhantomData};
 use unicode_width::UnicodeWidthStr;
 use uuid_b64::UuidB64;

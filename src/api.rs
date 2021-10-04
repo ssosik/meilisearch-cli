@@ -72,7 +72,7 @@ impl ApiQuery {
                                 Rule::gt => filter.push_str("> "),
                                 Rule::lt => filter.push_str("< "),
                                 _ => unreachable!(),
-                            }
+                            },
                             Rule::year_month_day | Rule::year_month | Rule::year => {
                                 filter.push_str(i.as_str());
                             }

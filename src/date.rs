@@ -1,10 +1,9 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
-use eyre::{eyre, Result};
 use color_eyre::Report;
-use std::str::FromStr;
+use eyre::{eyre, Result};
 use serde::{de, Deserialize, Deserializer, Serialize};
+use std::str::FromStr;
 use std::{fmt, marker::PhantomData};
-
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Date(i64);
