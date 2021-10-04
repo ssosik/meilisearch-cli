@@ -1,4 +1,5 @@
 use crate::document;
+use chrono::{DateTime, Duration, Local, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use unicode_width::UnicodeWidthStr; // Provides `width()` method on String
 
@@ -38,9 +39,9 @@ impl ApiQuery {
         }
     }
 
-    pub fn process_filter(&mut self, s: String) {
+    pub fn process_filter(&mut self, input: String) {
         // If the supplied string doesn't parse with our expected grammer, just return
-        let mut expr = match Filter::parse(Rule::expression, s.as_str()) {
+        let mut expr = match Filter::parse(Rule::expression, input.as_str()) {
             Ok(f) => f,
             Err(_) => return,
         };
@@ -49,48 +50,159 @@ impl ApiQuery {
         let mut filter = String::from("");
         // Iterate over each inner piece of the parsed expression and build the
         // filter string to set on the meilisearch query
-        for t in expr.into_inner() {
+        let mut curr_comparator: Option<Rule> = None;
+        for token in expr.into_inner() {
             // TODO add support for subexpressions in parens
             // TODO add support for single-quoted tags to enable tags with spaces
-            // TODO add support for dates, like:
-            //  - 2019 : match all docs within date in the year
-            //  - 2019-10 : match all docs within date in the year and month
-            //  - 2019-10-30 : match all docs within date in the year, month and dat
-            //  - 1h : match all docs within the past hour
-            //  - 2d : match all docs within the 2 days
-            //  - 3w : match all docs within the 3 weeks
-            //  - 4m : match all docs within the 4 months
-            //  - 5y : match all docs within the 5 years
-            //  For all of the above, add '<' and '>' prefixed variants for
-            //    older than and newer than constraints
-            match t.as_rule() {
+            match token.as_rule() {
+                Rule::comparator => match token.into_inner().next().unwrap().as_rule() {
+                    Rule::gt => curr_comparator = Some(Rule::gt),
+                    Rule::lt => curr_comparator = Some(Rule::lt),
+                    _ => unreachable!(),
+                },
                 Rule::date => {
                     filter.push_str("date ");
-                    for i in t.into_inner() {
-                        match i.as_rule() {
-                            Rule::comparator => match i.into_inner().next().unwrap().as_rule() {
-                                Rule::gt => filter.push_str("> "),
-                                Rule::lt => filter.push_str("< "),
-                                _ => unreachable!(),
-                            },
-                            Rule::year_month_day | Rule::year_month | Rule::year => {
-                                filter.push_str(i.as_str());
+                    for inner in token.into_inner() {
+                        match inner.as_rule() {
+                            Rule::year_month_day => {
+                                // TODO handle Timezone UTC/local properly
+                                let mut inner = inner.into_inner();
+                                let y = inner.next().unwrap().as_str().parse::<i32>().unwrap();
+                                let m = inner.next().unwrap().as_str().parse::<u32>().unwrap();
+                                let d = inner.next().unwrap().as_str().parse::<u32>().unwrap();
+                                let start = DateTime::<Utc>::from_utc(
+                                    NaiveDate::from_ymd(y, m, d).and_hms(0, 0, 0),
+                                    Utc,
+                                );
+                                let end = DateTime::<Utc>::from_utc(
+                                    NaiveDate::from_ymd(y, m, d).and_hms(23, 59, 59),
+                                    Utc,
+                                );
+                                match curr_comparator {
+                                    Some(c) => match c {
+                                        Rule::gt => {
+                                            filter.push_str(&format!("> {} ", start.timestamp()))
+                                        }
+                                        Rule::lt => {
+                                            filter.push_str(&format!("< {} ", end.timestamp()))
+                                        }
+                                        _ => unreachable!(),
+                                    },
+                                    None => filter.push_str(&format!(
+                                        "> {} AND date < {}",
+                                        start.timestamp(),
+                                        end.timestamp()
+                                    )),
+                                };
+                                curr_comparator = None; // Reset comparator
+                            }
+                            Rule::year_month => {
+                                let mut inner = inner.into_inner();
+                                let y = inner.next().unwrap().as_str().parse::<i32>().unwrap();
+                                let m = inner.next().unwrap().as_str().parse::<u32>().unwrap();
+                                let start = DateTime::<Utc>::from_utc(
+                                    NaiveDate::from_ymd(y, m, 1).and_hms(0, 0, 0),
+                                    Utc,
+                                );
+                                let end = DateTime::<Utc>::from_utc(
+                                    match m {
+                                        12 => NaiveDate::from_ymd(y + 1, 1, 1),
+                                        _ => NaiveDate::from_ymd(y, m + 1, 1),
+                                    }
+                                    .pred()
+                                    .and_hms(23, 59, 59),
+                                    Utc,
+                                );
+                                match curr_comparator {
+                                    Some(c) => match c {
+                                        Rule::gt => {
+                                            filter.push_str(&format!("> {} ", start.timestamp(),))
+                                        }
+                                        Rule::lt => {
+                                            filter.push_str(&format!("< {} ", end.timestamp()))
+                                        }
+                                        _ => unreachable!(),
+                                    },
+                                    None => filter.push_str(&format!(
+                                        "> {} AND date < {}",
+                                        start.timestamp(),
+                                        end.timestamp()
+                                    )),
+                                };
+                                curr_comparator = None; // Reset comparator
+                            }
+                            Rule::year => {
+                                let y = inner.as_str().parse::<i32>().unwrap();
+                                let start = DateTime::<Utc>::from_utc(
+                                    NaiveDate::from_ymd(y, 1, 1).and_hms(0, 0, 0),
+                                    Utc,
+                                );
+                                let end = DateTime::<Utc>::from_utc(
+                                    NaiveDate::from_ymd(y, 12, 31).and_hms(23, 59, 59),
+                                    Utc,
+                                );
+                                match curr_comparator {
+                                    Some(c) => match c {
+                                        Rule::gt => {
+                                            filter.push_str(&format!("> {} ", start.timestamp(),))
+                                        }
+                                        Rule::lt => {
+                                            filter.push_str(&format!("< {} ", end.timestamp()))
+                                        }
+                                        _ => unreachable!(),
+                                    },
+                                    None => filter.push_str(&format!(
+                                        "> {} AND date < {}",
+                                        start.timestamp(),
+                                        end.timestamp()
+                                    )),
+                                };
+                                curr_comparator = None; // Reset comparator
                             }
                             _ => unreachable!(),
                         }
                     }
                 }
+                Rule::duration => {
+                    filter.push_str("date ");
+                    let t = token.into_inner().next().unwrap();
+                    let dur_fn = match t.as_rule() {
+                        Rule::hour_duration => |n| Duration::hours(n),
+                        Rule::day_duration => |n| Duration::days(n),
+                        Rule::week_duration => |n| Duration::weeks(n),
+                        Rule::month_duration => |n| Duration::days(n * 30),
+                        Rule::year_duration => |n| Duration::days(n * 365),
+                        _ => unreachable!(),
+                    };
+                    let v = t
+                        .into_inner()
+                        .next()
+                        .unwrap()
+                        .as_str()
+                        .parse::<i64>()
+                        .unwrap();
+                    let ts = Local::now().checked_sub_signed(dur_fn(v)).unwrap();
+                    match curr_comparator {
+                        Some(c) => match c {
+                            Rule::gt => filter.push_str(&format!("> {} ", ts.timestamp())),
+                            Rule::lt => filter.push_str(&format!("< {} ", ts.timestamp())),
+                            _ => unreachable!(),
+                        },
+                        None => filter.push_str(&format!("> {}", ts.timestamp())),
+                    };
+                    curr_comparator = None; // Reset comparator
+                }
                 Rule::tag => {
                     filter.push_str("tag = ");
-                    filter.push_str(t.as_str());
+                    filter.push_str(token.as_str());
                 }
                 Rule::not_tag => {
                     filter.push_str("tag != ");
-                    for i in t.into_inner() {
-                        filter.push_str(i.as_str());
+                    for inner in token.into_inner() {
+                        filter.push_str(inner.as_str());
                     }
                 }
-                Rule::operator => match t.into_inner().next().unwrap().as_rule() {
+                Rule::operator => match token.into_inner().next().unwrap().as_rule() {
                     Rule::and => {
                         filter.push_str(" AND ");
                     }

@@ -13,17 +13,23 @@ char = { ASCII_ALPHANUMERIC | "." | "-" | "_" | "/" }
 tag = { char+ }
 not_tag = { "!" ~ tag }
 
-year = { ASCII_DIGIT{4} }
-year_month = { year ~ "-" ~ ASCII_DIGIT{1,2} }
-year_month_day = { year_month ~ "-" ~ ASCII_DIGIT{1,2} }
-date = { comparator? ~ (year_month_day | year_month | year) }
+year = { ( "1" | "2" ) ~ ( ASCII_DIGIT{3} ) }
+month = { "10" | "11" | "12" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09" }
+day = { ("0" | "1" | "2" | "3" ) ~ ( ASCII_DIGIT ) | ASCII_DIGIT }
+year_month = { year ~ "-" ~ month }
+year_month_day = { year ~ "-" ~ month ~ "-" ~ day }
+date = { year_month_day | year_month | year }
 
-duration_designator = { "h" | "d" | "w" | "m" | "y" }
-duration_length = { ASCII_DIGIT+ ~ duration_designator }
-duration = { comparator? ~ duration_length }
+duration_digit = { ASCII_DIGIT+ }
+hour_duration = { duration_digit ~ "h" }
+day_duration = { duration_digit ~ "d" }
+week_duration = { duration_digit ~ "w" }
+month_duration = { duration_digit ~ "m" }
+year_duration = { duration_digit ~ "y" }
+duration = { hour_duration | day_duration | week_duration | month_duration | year_duration }
 
 expression = {
     SOI ~
-    ((date | duration | not_tag | tag) ~ operator?)+ ~
+    (((comparator? ~ (date | duration)) | not_tag | tag) ~ operator?)+ ~
     EOI
 }
