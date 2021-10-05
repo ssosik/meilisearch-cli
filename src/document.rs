@@ -1,8 +1,8 @@
-use chrono::{DateTime, FixedOffset};
-use color_eyre::Report;
-use eyre::{eyre, Result};
+use crate::date::{date_deserializer, Date};
+use eyre::Result;
 use serde::{de, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use std::io::{Error, ErrorKind};
+use std::str::FromStr;
 use std::{fmt, fs, io, marker::PhantomData};
 use unicode_width::UnicodeWidthStr;
 use uuid_b64::UuidB64;
@@ -26,8 +26,9 @@ pub struct Document {
     #[serde(default)]
     #[serde(skip)]
     pub skip_serializing_body: bool,
-    /// RFC 3339 based timestamp
-    pub date: String,
+    /// Epoch seconds
+    #[serde(deserialize_with = "date_deserializer")]
+    pub date: Date,
     #[serde(default)]
     #[serde(skip_serializing_if = "is_false")]
     pub latest: bool,
@@ -153,7 +154,7 @@ impl From<markdown_fm_doc::Document> for Document {
             origid: uuid.to_string(),
             authors: vec![item.author],
             body: item.body,
-            date: item.date,
+            date: Date::from_str(&item.date).unwrap(),
             latest: true,
             revision: 1,
             tag: item.tags,
@@ -180,7 +181,11 @@ impl Serialize for Document {
         if self.subtitle.width() > 0 {
             s.serialize_field("subtitle", &self.subtitle)?;
         };
-        s.serialize_field("date", &self.date)?;
+        if self.skip_serializing_body {
+            s.serialize_field("date", &format!("{}", &self.date))?;
+        } else {
+            s.serialize_field("date", &self.date)?;
+        }
         s.serialize_field("tag", &self.tag)?;
         if !self.skip_serializing_body {
             s.serialize_field("filename", &self.filename)?;
