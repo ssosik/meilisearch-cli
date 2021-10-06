@@ -151,7 +151,7 @@ impl From<markdown_fm_doc::Document> for Document {
         Document {
             id: uuid.to_string(),
             origid: uuid.to_string(),
-            authors: vec![item.author],
+            author: vec![item.author],
             body: item.body,
             date: Date::from_str(&item.date).unwrap(),
             latest: true,
@@ -189,7 +189,7 @@ impl Serialize for Document {
         if self.serialization_type == SerializationType::Storage {
             s.serialize_field("filename", &self.filename)?;
         };
-        s.serialize_field("authors", &self.authors)?;
+        s.serialize_field("author", &self.author)?;
         s.serialize_field("id", &self.id)?;
         s.serialize_field("origid", &self.origid)?;
         s.serialize_field("weight", &self.weight)?;

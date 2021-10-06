@@ -1,6 +1,11 @@
+use crate::date::DateRange;
 use crate::document;
 use chrono::{DateTime, Duration, Local, NaiveDate, Utc};
+use color_eyre::Report;
+use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
+use std::convert::TryInto;
 use unicode_width::UnicodeWidthStr; // Provides `width()` method on String
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -23,8 +28,10 @@ pub struct ApiQuery {
     pub limit: u32,
 }
 
-use pest::Parser; // Provides the generated 'parse()' method on Filter struct
-use pest_derive::Parser; // Provides the Parser deriver, grammer autogeneration, and Rules
+// Provides the generated 'parse()' method on Filter struct
+use pest::{iterators as pest_iterators, Parser};
+// Provides the Parser deriver, grammer autogeneration, and Rules
+use pest_derive::Parser;
 
 #[derive(Parser)]
 #[grammar = "filter.pest"]
@@ -62,106 +69,32 @@ impl ApiQuery {
                 },
                 Rule::date => {
                     filter.push_str("date ");
-                    for inner in token.into_inner() {
-                        match inner.as_rule() {
-                            Rule::year_month_day => {
-                                // TODO handle Timezone UTC/local properly
-                                let mut inner = inner.into_inner();
-                                let y = inner.next().unwrap().as_str().parse::<i32>().unwrap();
-                                let m = inner.next().unwrap().as_str().parse::<u32>().unwrap();
-                                let d = inner.next().unwrap().as_str().parse::<u32>().unwrap();
-                                let start = DateTime::<Utc>::from_utc(
-                                    NaiveDate::from_ymd(y, m, d).and_hms(0, 0, 0),
-                                    Utc,
-                                );
-                                let end = DateTime::<Utc>::from_utc(
-                                    NaiveDate::from_ymd(y, m, d).and_hms(23, 59, 59),
-                                    Utc,
-                                );
-                                match curr_comparator {
-                                    Some(c) => match c {
-                                        Rule::gt => {
-                                            filter.push_str(&format!("> {} ", start.timestamp()))
-                                        }
-                                        Rule::lt => {
-                                            filter.push_str(&format!("< {} ", end.timestamp()))
-                                        }
-                                        _ => unreachable!(),
-                                    },
-                                    None => filter.push_str(&format!(
-                                        "> {} AND date < {}",
-                                        start.timestamp(),
-                                        end.timestamp()
-                                    )),
-                                };
-                                curr_comparator = None; // Reset comparator
+                    let range: DateRange = match token.into_inner().next() {
+                        Some(r) => match r.try_into() {
+                            Ok(r) => r,
+                            Err(e) => {
+                                filter.push_str(&format!("Date err {:?}", e));
+                                continue;
                             }
-                            Rule::year_month => {
-                                let mut inner = inner.into_inner();
-                                let y = inner.next().unwrap().as_str().parse::<i32>().unwrap();
-                                let m = inner.next().unwrap().as_str().parse::<u32>().unwrap();
-                                let start = DateTime::<Utc>::from_utc(
-                                    NaiveDate::from_ymd(y, m, 1).and_hms(0, 0, 0),
-                                    Utc,
-                                );
-                                let end = DateTime::<Utc>::from_utc(
-                                    match m {
-                                        12 => NaiveDate::from_ymd(y + 1, 1, 1),
-                                        _ => NaiveDate::from_ymd(y, m + 1, 1),
-                                    }
-                                    .pred()
-                                    .and_hms(23, 59, 59),
-                                    Utc,
-                                );
-                                match curr_comparator {
-                                    Some(c) => match c {
-                                        Rule::gt => {
-                                            filter.push_str(&format!("> {} ", start.timestamp(),))
-                                        }
-                                        Rule::lt => {
-                                            filter.push_str(&format!("< {} ", end.timestamp()))
-                                        }
-                                        _ => unreachable!(),
-                                    },
-                                    None => filter.push_str(&format!(
-                                        "> {} AND date < {}",
-                                        start.timestamp(),
-                                        end.timestamp()
-                                    )),
-                                };
-                                curr_comparator = None; // Reset comparator
-                            }
-                            Rule::year => {
-                                let y = inner.as_str().parse::<i32>().unwrap();
-                                let start = DateTime::<Utc>::from_utc(
-                                    NaiveDate::from_ymd(y, 1, 1).and_hms(0, 0, 0),
-                                    Utc,
-                                );
-                                let end = DateTime::<Utc>::from_utc(
-                                    NaiveDate::from_ymd(y, 12, 31).and_hms(23, 59, 59),
-                                    Utc,
-                                );
-                                match curr_comparator {
-                                    Some(c) => match c {
-                                        Rule::gt => {
-                                            filter.push_str(&format!("> {} ", start.timestamp(),))
-                                        }
-                                        Rule::lt => {
-                                            filter.push_str(&format!("< {} ", end.timestamp()))
-                                        }
-                                        _ => unreachable!(),
-                                    },
-                                    None => filter.push_str(&format!(
-                                        "> {} AND date < {}",
-                                        start.timestamp(),
-                                        end.timestamp()
-                                    )),
-                                };
-                                curr_comparator = None; // Reset comparator
-                            }
-                            _ => unreachable!(),
+                        },
+                        None => {
+                            filter.push_str("none");
+                            continue;
                         }
-                    }
+                    };
+                    match curr_comparator {
+                        Some(c) => match c {
+                            Rule::gt => filter.push_str(&format!("> {} ", range.start.timestamp())),
+                            Rule::lt => filter.push_str(&format!("< {} ", range.end.timestamp())),
+                            _ => unreachable!(),
+                        },
+                        None => filter.push_str(&format!(
+                            "> {} AND date < {}",
+                            range.start.timestamp(),
+                            range.end.timestamp()
+                        )),
+                    };
+                    curr_comparator = None; // Reset comparator
                 }
                 Rule::duration => {
                     filter.push_str("date ");
@@ -233,4 +166,62 @@ pub struct ApiResponse {
     pub offset: u32,
     #[serde(rename = "processingTimeMs")]
     pub processing_time_ms: u32,
+}
+
+type PestPair<'a> = pest_iterators::Pair<'a, Rule>;
+impl TryFrom<PestPair<'_>> for DateRange {
+    type Error = Report;
+
+    fn try_from(item: PestPair<'_>) -> Result<Self, Self::Error> {
+        let (start, end) = match item.as_rule() {
+            Rule::year_month_day => {
+                let mut item = item.into_inner();
+                let y = item.next().unwrap().as_str().parse::<i32>().unwrap();
+                let m = item.next().unwrap().as_str().parse::<u32>().unwrap();
+                let d = item.next().unwrap().as_str().parse::<u32>().unwrap();
+                (
+                    // Start date
+                    DateTime::<Utc>::from_utc(NaiveDate::from_ymd(y, m, d).and_hms(0, 0, 0), Utc),
+                    // End date
+                    DateTime::<Utc>::from_utc(
+                        NaiveDate::from_ymd(y, m, d).and_hms(23, 59, 59),
+                        Utc,
+                    ),
+                )
+            }
+            Rule::year_month => {
+                let mut item = item.into_inner();
+                let y = item.next().unwrap().as_str().parse::<i32>().unwrap();
+                let m = item.next().unwrap().as_str().parse::<u32>().unwrap();
+                (
+                    // Start date
+                    DateTime::<Utc>::from_utc(NaiveDate::from_ymd(y, m, 1).and_hms(0, 0, 0), Utc),
+                    // End date
+                    DateTime::<Utc>::from_utc(
+                        match m {
+                            12 => NaiveDate::from_ymd(y + 1, 1, 1),
+                            _ => NaiveDate::from_ymd(y, m + 1, 1),
+                        }
+                        .pred()
+                        .and_hms(23, 59, 59),
+                        Utc,
+                    ),
+                )
+            }
+            Rule::year => {
+                let y = item.as_str().parse::<i32>().unwrap();
+                (
+                    // Start date
+                    DateTime::<Utc>::from_utc(NaiveDate::from_ymd(y, 1, 1).and_hms(0, 0, 0), Utc),
+                    // End date
+                    DateTime::<Utc>::from_utc(
+                        NaiveDate::from_ymd(y, 12, 31).and_hms(23, 59, 59),
+                        Utc,
+                    ),
+                )
+            }
+            e => return Err(eyre!("Unexpected match item {:?}", e)),
+        };
+        Ok(DateRange { start, end })
+    }
 }

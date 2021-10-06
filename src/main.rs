@@ -1,3 +1,5 @@
+mod interactive;
+mod query;
 use color_eyre::Report;
 use glob::{glob, Paths};
 use meilisearch_cli::{api, document};
@@ -6,7 +8,6 @@ use std::fs;
 use std::path::Path;
 use structopt::StructOpt;
 use url::Url;
-mod interactive;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -42,6 +43,13 @@ enum Subcommands {
     Import { globpath: String },
     /// Interactively query the server
     Query {},
+    /// Non-interactive query, specify all parameters from the command line
+    StaticQuery {
+        #[structopt(default_value = "")]
+        query: String,
+        #[structopt(default_value = "")]
+        filter: String,
+    },
     /// Dump records to a local path
     Dump { path: String },
     /// Opens $EDITOR on a template and then adds it when the editor is closed
@@ -85,6 +93,13 @@ fn main() -> Result<(), Report> {
         legacy_import(url_base, cli.value_of("globpath").unwrap(), verbosity as u8)?;
     } else if let Some(_cli) = cli.subcommand_matches("query") {
         interactive_query(url_base, verbosity as u8)?;
+    } else if let Some(cli) = cli.subcommand_matches("static-query") {
+        static_query(
+            url_base,
+            cli.value_of("query").unwrap(),
+            cli.value_of("filter").unwrap(),
+            verbosity as u8,
+        )?;
     } else if let Some(cli) = cli.subcommand_matches("dump") {
         dump(url_base, cli.value_of("path").unwrap(), verbosity as u8)?;
     }
@@ -153,6 +168,21 @@ fn interactive_query(mut url: Url, verbosity: u8) -> Result<(), Report> {
     let client = reqwest::blocking::Client::new();
     url.set_path("indexes/notes/search");
     match interactive::query(client, url, verbosity as u8) {
+        Ok(res) => {
+            println!("Document IDs: {:?}", res);
+        }
+        Err(e) => {
+            eprintln!("❌ {:?}", e);
+            //std::panic::panic_any(e);
+        }
+    };
+    Ok(())
+}
+
+fn static_query(mut url: Url, query: &str, filter: &str, _verbosity: u8) -> Result<(), Report> {
+    let client = reqwest::blocking::Client::new();
+    url.set_path("indexes/notes/search");
+    match query::query(client, url, query.to_string(), filter.to_string()) {
         Ok(res) => {
             println!("Document IDs: {:?}", res);
         }

@@ -8,6 +8,12 @@ use std::{fmt, marker::PhantomData};
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Date(i64);
 
+#[derive(Debug)]
+pub struct DateRange {
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+}
+
 impl Date {
     pub fn new(d: i64) -> Date {
         Date(d)

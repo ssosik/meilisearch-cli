@@ -1,6 +1,6 @@
+use crate::{api, document};
 use color_eyre::Report;
 use eyre::bail;
-use meilisearch_cli::{api, document};
 use reqwest::header::CONTENT_TYPE;
 use std::io::{stdout, Write};
 use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
@@ -178,12 +178,12 @@ pub fn query(
 
             // Preview area where content is displayed
             let preview = Paragraph::new(app.output.as_ref())
-                .block(Block::default().borders(Borders::ALL))
+                .block(Block::default().borders(Borders::NONE))
                 .wrap(Wrap { trim: true });
             f.render_widget(preview, screen[1]);
 
             // Output area where match titles are displayed
-            // TODO panes specifically for tags, weight, revisions, date, authors, id, origid,
+            // TODO panes specifically for tag, weight, revisions, date, author, id, origid,
             //    latest
             let interactive = Layout::default()
                 .direction(Direction::Vertical)
