@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{offset, DateTime, NaiveDateTime, Utc};
 use color_eyre::Report;
 use eyre::{eyre, Result};
 use serde::{de, Deserialize, Deserializer, Serialize};
@@ -29,7 +29,7 @@ impl fmt::Display for Date {
         let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
 
         // Format the datetime how you want
-        write!(f, "{}", datetime.format("%Y-%m-%d %H:%M:%S"))
+        write!(f, "{}", datetime.with_timezone(&offset::Local).to_rfc3339())
     }
 }
 
