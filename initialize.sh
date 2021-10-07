@@ -9,14 +9,16 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/settings -XPOST -d@-
     "*"
   ],
   "filterableAttributes": [
+    "authors",
     "date",
     "latest",
-    "tag"
+    "tags"
   ],
   "sortableAttributes": [
     "date",
     "revision",
-    "weight"
+    "weight",
+    "views"
   ],
   "rankingRules": [
     "words",

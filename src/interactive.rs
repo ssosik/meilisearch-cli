@@ -224,8 +224,8 @@ pub fn query(
                 .style(Style::default().fg(Color::Yellow))
                 .block(
                     Block::default()
-                        .title("Filter input (e.g. 'tag=vim OR tag=bash')")
-                        .borders(Borders::ALL),
+                        .title("Filter input (e.g. 'vim | !bash')")
+                        .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT),
                 );
             f.render_widget(filter_input, interactive[2]);
 

@@ -193,11 +193,11 @@ impl ApiQuery {
                     curr_comparator = None; // Reset comparator
                 }
                 Rule::tag => {
-                    filter.push_str("tag = ");
+                    filter.push_str("tags = ");
                     filter.push_str(token.as_str());
                 }
                 Rule::not_tag => {
-                    filter.push_str("tag != ");
+                    filter.push_str("tags != ");
                     for inner in token.into_inner() {
                         filter.push_str(inner.as_str());
                     }

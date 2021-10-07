@@ -17,10 +17,9 @@ pub struct Document {
     // the revision field should be incremented
     #[serde(default)]
     pub origid: String,
-    #[serde(default)]
+    #[serde(default, alias="author")]
     pub authors: Vec<String>,
-    // Note the custom Serialize implementation below to skip the `body` if the
-    // skip_serializing_body attribute is set
+    // Note the custom Serialize implementation below to skip the `body` depending on how
     #[serde(default)]
     pub body: String,
     #[serde(default)]
@@ -44,8 +43,8 @@ pub struct Document {
     #[serde(default)]
     pub subtitle: String,
     #[serde(default)]
-    #[serde(deserialize_with = "string_or_list_string")]
-    pub tag: Vec<String>,
+    #[serde(deserialize_with = "string_or_list_string", alias="tag")]
+    pub tags: Vec<String>,
     #[serde(default)]
     pub weight: i32,
     #[serde(default)]
@@ -157,7 +156,7 @@ impl From<markdown_fm_doc::Document> for Document {
             date: Date::from_str(&item.date).unwrap(),
             latest: true,
             revision: 1,
-            tag: item.tags,
+            tags: item.tags,
             title: item.title,
             subtitle: item.subtitle,
             filename: item.filename,
@@ -166,7 +165,7 @@ impl From<markdown_fm_doc::Document> for Document {
     }
 }
 
-// Custom Serialization to skip body attribute if requested
+// Custom Serialization to skip various attributes if requested, ie when writing to disk
 impl Serialize for Document {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -186,8 +185,8 @@ impl Serialize for Document {
         } else {
             s.serialize_field("date", &self.date)?;
         }
-        s.serialize_field("tag", &self.tag)?;
-        if !self.skip_serializing_body {
+        s.serialize_field("tags", &self.tags)?;
+        if self.serialization_type == SerializationType::Storage {
             s.serialize_field("filename", &self.filename)?;
         };
         s.serialize_field("authors", &self.authors)?;
