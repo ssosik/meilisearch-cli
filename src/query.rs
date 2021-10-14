@@ -1,4 +1,4 @@
-use crate::api;
+use crate::{api, document};
 use color_eyre::Report;
 use eyre::bail;
 use reqwest::header::CONTENT_TYPE;
@@ -47,7 +47,7 @@ pub fn query(
                 resp.hits
                     .iter_mut()
                     .map(|mut m| {
-                        m.skip_serializing_body = true;
+                        m.serialization_type = document::SerializationType::Human;
                         m.to_owned()
                     })
                     .collect::<Vec<_>>()

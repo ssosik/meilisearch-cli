@@ -8,6 +8,20 @@ use unicode_width::UnicodeWidthStr;
 use uuid_b64::UuidB64;
 use yaml_rust::YamlEmitter;
 
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+pub enum SerializationType {
+    /// Serialize body only when putting into Storage
+    Storage,
+    Disk,
+    Human,
+}
+
+impl Default for SerializationType {
+    fn default() -> SerializationType {
+        SerializationType::Storage
+    }
+}
+
 // TODO add `backlink` field for hierarchical linking
 // TODO add `views` field for counting number of views
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
@@ -25,7 +39,7 @@ pub struct Document {
     pub body: String,
     #[serde(default)]
     #[serde(skip)]
-    pub skip_serializing_body: bool,
+    pub serialization_type: SerializationType,
     /// Epoch seconds
     #[serde(deserialize_with = "date_deserializer")]
     pub date: Date,
@@ -174,19 +188,15 @@ impl Serialize for Document {
     where
         S: Serializer,
     {
-        let mut s = if self.skip_serializing_body {
-            serializer.serialize_struct("Document", 14)?
-        } else {
-            serializer.serialize_struct("Document", 15)?
-        };
+        let mut s = serializer.serialize_struct("Document", 15)?;
         s.serialize_field("title", &self.title)?;
         if self.subtitle.width() > 0 {
             s.serialize_field("subtitle", &self.subtitle)?;
         };
-        if self.skip_serializing_body {
-            s.serialize_field("date", &format!("{}", &self.date))?;
-        } else {
+        if self.serialization_type == SerializationType::Storage {
             s.serialize_field("date", &self.date)?;
+        } else {
+            s.serialize_field("date", &format!("{}", &self.date))?;
         }
         s.serialize_field("tags", &self.tags)?;
         if self.serialization_type == SerializationType::Storage {
@@ -207,7 +217,7 @@ impl Serialize for Document {
         if self.slug.width() > 0 {
             s.serialize_field("slug", &self.slug)?;
         };
-        if !self.skip_serializing_body {
+        if self.serialization_type == SerializationType::Storage {
             s.serialize_field("body", &self.body)?;
         }
         s.end()

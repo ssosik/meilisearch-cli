@@ -427,7 +427,7 @@ pub fn query(
                                 .hits
                                 .iter_mut()
                                 .map(|mut m| {
-                                    m.skip_serializing_body = true;
+                                    m.serialization_type = document::SerializationType::Human;
                                     m.to_owned()
                                 })
                                 .collect::<Vec<_>>();

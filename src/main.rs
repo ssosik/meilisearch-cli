@@ -285,7 +285,7 @@ fn dump(mut url: Url, path: &str, _verbosity: u8) -> Result<(), Report> {
                 .hits
                 .iter_mut()
                 .map(|mut m| {
-                    m.skip_serializing_body = true;
+                    m.serialization_type = document::SerializationType::Disk;
                     m.to_owned()
                 })
                 .collect::<Vec<_>>()
