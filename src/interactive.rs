@@ -22,7 +22,7 @@ pub(crate) struct TerminalApp {
     /// Current value of the filter_input box
     pub(crate) filter_input: String,
     /// Preview window
-    pub(crate) output: String,
+    pub(crate) preview: String,
     /// Query Matches
     pub(crate) matches: Vec<document::Document>,
     /// Keep track of which matches are selected
@@ -89,7 +89,7 @@ impl Default for TerminalApp {
         TerminalApp {
             query_input: String::new(),
             filter_input: String::new(),
-            output: String::new(),
+            preview: String::new(),
             matches: Vec::new(),
             selected_state: ListState::default(),
             error: String::new(),
@@ -140,7 +140,7 @@ pub fn query(
         // Draw UI
         if let Err(e) = tui.draw(|f| {
             let main = if verbosity > 0 {
-                // Enable debug and error output areas
+                // Enable debug and error preview areas
                 Layout::default()
                     .direction(Direction::Vertical)
                     .margin(1)
@@ -179,7 +179,7 @@ pub fn query(
                 .split(main[0]);
 
             // Preview area where content is displayed
-            let preview = Paragraph::new(app.output.as_ref())
+            let preview = Paragraph::new(app.preview.as_ref())
                 .block(Block::default().borders(Borders::NONE))
                 .wrap(Wrap { trim: true });
             f.render_widget(preview, screen[1]);
@@ -377,11 +377,11 @@ pub fn query(
                         }
                         Key::Down | Key::Ctrl('n') => {
                             app.next();
-                            app.output = app.get_selected_contents();
+                            app.preview = app.get_selected_contents();
                         }
                         Key::Up | Key::Ctrl('p') => {
                             app.previous();
-                            app.output = app.get_selected_contents();
+                            app.preview = app.get_selected_contents();
                         }
                         _ => {}
                     }

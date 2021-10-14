@@ -32,7 +32,7 @@ pub struct Document {
     // the revision field should be incremented
     #[serde(default)]
     pub origid: String,
-    #[serde(default, alias="author")]
+    #[serde(default, alias = "author")]
     pub authors: Vec<String>,
     // Note the custom Serialize implementation below to skip the `body` depending on how
     #[serde(default)]
@@ -58,7 +58,7 @@ pub struct Document {
     #[serde(default)]
     pub subtitle: String,
     #[serde(default)]
-    #[serde(deserialize_with = "string_or_list_string", alias="tag")]
+    #[serde(deserialize_with = "string_or_list_string", alias = "tag")]
     pub tags: Vec<String>,
     #[serde(default)]
     pub weight: i32,
@@ -157,8 +157,12 @@ where
 
 impl fmt::Display for Document {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let yaml = serde_yaml::to_string(&self).unwrap();
-        write!(f, "{}---\n{}", yaml, self.body)
+        if self.serialization_type == SerializationType::Human {
+            write!(f, "{}", self.body)
+        } else {
+            let yaml = serde_yaml::to_string(&self).unwrap();
+            write!(f, "{}---\n{}", yaml, self.body)
+        }
     }
 }
 
@@ -188,7 +192,14 @@ impl Serialize for Document {
     where
         S: Serializer,
     {
-        let mut s = serializer.serialize_struct("Document", 15)?;
+        let mut s = match self.serialization_type {
+            SerializationType::Storage => serializer.serialize_struct("Document", 15)?,
+            SerializationType::Disk => serializer.serialize_struct("Document", 13)?,
+            SerializationType::Human => {
+                return serializer.serialize_struct("Document", 0)?.end();
+            }
+        };
+
         s.serialize_field("title", &self.title)?;
         if self.subtitle.width() > 0 {
             s.serialize_field("subtitle", &self.subtitle)?;
