@@ -140,16 +140,16 @@ pub fn query(
         // Draw UI
         if let Err(e) = tui.draw(|f| {
             let main = if verbosity > 0 {
-                // Enable debug and error preview areas
+                // Enable debug and error areas
                 Layout::default()
                     .direction(Direction::Vertical)
                     .margin(1)
                     .constraints(
                         [
                             // Content Preview Area
-                            Constraint::Percentage(85),
+                            Constraint::Percentage(80),
                             // Debug Message Area
-                            Constraint::Percentage(5),
+                            Constraint::Percentage(10),
                             // Error Message Area
                             Constraint::Percentage(10),
                         ]
@@ -218,7 +218,7 @@ pub fn query(
             // Input area where queries are entered
             let query_input = Paragraph::new(app.query_input.as_ref())
                 .style(Style::default().fg(Color::Yellow))
-                .block(Block::default().title("Query input").borders(Borders::ALL));
+                .block(Block::default().title("Query input").borders(Borders::TOP | Borders::LEFT| Borders::RIGHT));
             f.render_widget(query_input, interactive[1]);
 
             // Input area where filters are entered
@@ -247,7 +247,7 @@ pub fn query(
                     .block(
                         Block::default()
                             .title("Debug messages")
-                            .borders(Borders::ALL),
+                            .borders(Borders::TOP | Borders::LEFT),
                     )
                     .wrap(Wrap { trim: true });
                 f.render_widget(debug, main[1]);
@@ -258,7 +258,7 @@ pub fn query(
                     .block(
                         Block::default()
                             .title("Error messages")
-                            .borders(Borders::ALL),
+                            .borders(Borders::TOP | Borders::LEFT),
                     )
                     .wrap(Wrap { trim: true });
                 f.render_widget(error, main[2]);
