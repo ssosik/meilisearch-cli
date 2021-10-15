@@ -4,10 +4,12 @@ use color_eyre::Report;
 use eyre::bail;
 use reqwest::header::CONTENT_TYPE;
 use std::io::{stdout, Write};
+use std::process::Command;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style as hStyle, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
+use tempfile::Builder;
 use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
     backend::TermionBackend,
@@ -139,7 +141,7 @@ pub fn query(
     //let mut highlighter = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
 
     // Setup event handlers
-    let events = event::Events::new();
+    let mut events = event::Events::new();
 
     // Create default app state
     let mut app = TerminalApp::new();
@@ -299,7 +301,6 @@ pub fn query(
                 if let event::Event::Input(input) = ev {
                     // TODO add support for:
                     //  - ctrl-e to open selected in $EDITOR, then submit on file close
-                    //  - ctrl-v to open selected in $LESS
                     //  - pageup/pagedn/home/end for navigating displayed selection
                     //  - ctrl-jkdu for navigating displayed selection
                     //  - ctrl-hl for navigating between links
@@ -526,8 +527,7 @@ pub mod event {
                 thread::spawn(move || {
                     let stdin = io::stdin();
                     for evt in stdin.keys().flatten() {
-                        if let Err(err) = tx.send(Event::Input(evt)) {
-                            eprintln!("{}", err);
+                        if tx.send(Event::Input(evt)).is_err() {
                             return;
                         }
                     }
@@ -535,8 +535,7 @@ pub mod event {
             };
             let tick_handle = {
                 thread::spawn(move || loop {
-                    if let Err(err) = tx.send(Event::Tick) {
-                        eprintln!("{}", err);
+                    if tx.send(Event::Tick).is_err() {
                         break;
                     }
                     thread::sleep(config.tick_rate);

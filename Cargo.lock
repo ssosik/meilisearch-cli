@@ -722,6 +722,7 @@ dependencies = [
  "shellexpand",
  "structopt",
  "syntect",
+ "tempfile",
  "termion",
  "tui",
  "unicode-width",
