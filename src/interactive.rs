@@ -1,8 +1,13 @@
 use crate::{api, document};
+use ansi_to_tui::ansi_to_text;
 use color_eyre::Report;
 use eyre::bail;
 use reqwest::header::CONTENT_TYPE;
 use std::io::{stdout, Write};
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{Style as hStyle, ThemeSet};
+use syntect::parsing::SyntaxSet;
+use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
     backend::TermionBackend,
@@ -12,8 +17,6 @@ use tui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
 };
 use url::Url;
-
-// TODO Syntax highlighting in preview pane with https://github.com/trishume/syntect
 
 /// TerminalApp holds the state of the application
 pub(crate) struct TerminalApp {
@@ -82,10 +85,8 @@ impl TerminalApp {
         };
         self.selected_state.select(Some(i));
     }
-}
 
-impl Default for TerminalApp {
-    fn default() -> TerminalApp {
+    fn new() -> TerminalApp {
         TerminalApp {
             query_input: String::new(),
             filter_input: String::new(),
@@ -130,11 +131,18 @@ pub fn query(
     )))
     .unwrap();
 
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+
+    let syntax = ps.find_syntax_by_extension("md").unwrap();
+    let mut highlighter = HighlightLines::new(syntax, &ts.themes["Solarized (dark)"]);
+    //let mut highlighter = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+
     // Setup event handlers
     let events = event::Events::new();
 
     // Create default app state
-    let mut app = TerminalApp::default();
+    let mut app = TerminalApp::new();
 
     loop {
         // Draw UI
@@ -179,10 +187,17 @@ pub fn query(
                 .split(main[0]);
 
             // Preview area where content is displayed
-            let preview = Paragraph::new(app.preview.as_ref())
+            let mut preview_text = String::from("");
+            for line in LinesWithEndings::from(app.preview.as_ref()) {
+                let ranges: Vec<(hStyle, &str)> = highlighter.highlight(line, &ps);
+                let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
+                preview_text.push_str(&escaped);
+            }
+            //let preview_text = Paragraph::new(app.preview.as_ref())
+            let preview_text = Paragraph::new(ansi_to_text(preview_text.bytes()).unwrap())
                 .block(Block::default().borders(Borders::NONE))
                 .wrap(Wrap { trim: true });
-            f.render_widget(preview, screen[1]);
+            f.render_widget(preview_text, screen[1]);
 
             // Output area where match titles are displayed
             // TODO panes specifically for tag, weight, revisions, date, author, id, origid,
@@ -218,7 +233,11 @@ pub fn query(
             // Input area where queries are entered
             let query_input = Paragraph::new(app.query_input.as_ref())
                 .style(Style::default().fg(Color::Yellow))
-                .block(Block::default().title("Query input").borders(Borders::TOP | Borders::LEFT| Borders::RIGHT));
+                .block(
+                    Block::default()
+                        .title("Query input")
+                        .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT),
+                );
             f.render_widget(query_input, interactive[1]);
 
             // Input area where filters are entered
@@ -311,6 +330,7 @@ pub fn query(
                             app.inp_widths[app.inp_idx] += 1;
                         }
                         Key::Backspace => {
+                            // TODO prevent this from going to far back
                             if app.inp_idx == 0 {
                                 app.query_input.pop();
                             } else {
