@@ -9,6 +9,7 @@ use uuid_b64::UuidB64;
 use yaml_rust::YamlEmitter;
 
 // TODO add `backlink` field for hierarchical linking
+// TODO add `views` field for counting number of views
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 pub struct Document {
     #[serde(default)]
@@ -47,6 +48,8 @@ pub struct Document {
     pub tags: Vec<String>,
     #[serde(default)]
     pub weight: i32,
+    #[serde(default)]
+    pub views: i32,
     #[serde(default)]
     pub filename: String,
 }

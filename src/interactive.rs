@@ -122,6 +122,8 @@ pub fn query(
     client: reqwest::blocking::Client,
     uri: Url,
     verbosity: u8,
+    pager: String,
+    editor: String,
 ) -> Result<Vec<String>, Report> {
     let mut tui = tui::Terminal::new(TermionBackend::new(AlternateScreen::from(
         stdout().into_raw_mode().unwrap(),
@@ -284,6 +286,7 @@ pub fn query(
                     //  - ctrl-hl for navigating between links
                     //  - Limit query and filter input box length
                     //  - +/- (and return) to modify weight
+                    //  - ctrl-m to toggle displaying frontmatter metadata (off by default)
                     match input {
                         Key::Char('\n') => {
                             // Select choice
@@ -314,6 +317,63 @@ pub fn query(
                                 app.filter_input.pop();
                             }
                             app.inp_widths[app.inp_idx] -= 1;
+                        }
+                        Key::Ctrl('e') => {
+                            // Temporarily drop the TUI app and event handling while
+                            // we shell out to EDITOR, restore these on return
+                            //events.tx.send("q");
+                            drop(events);
+                            tui.clear().unwrap();
+                            drop(tui);
+                            let mut tf = Builder::new()
+                                .prefix("meiliseach-cli-")
+                                .suffix(".md")
+                                .rand_bytes(5)
+                                .tempfile()?;
+                            tf.write_all(app.get_selected_contents().as_bytes())?;
+                            let editor = editor.clone();
+                            let mut editor = editor.split_whitespace();
+                            let mut cmd = Command::new(editor.next().unwrap());
+                            for arg in editor {
+                                cmd.arg(arg);
+                            }
+                            cmd.arg(tf.path())
+                                .status()
+                                .expect("failed to execute process");
+                            events = event::Events::new();
+                            tui = tui::Terminal::new(TermionBackend::new(AlternateScreen::from(
+                                stdout().into_raw_mode().unwrap(),
+                            )))
+                            .unwrap();
+                        }
+                        Key::Ctrl('v') => {
+                            // Temporarily drop the TUI app and event handling while
+                            // we shell out to less, restore these on return
+                            //events.tx.send("q");
+                            drop(events);
+                            tui.clear().unwrap();
+                            drop(tui);
+                            let mut tf = Builder::new()
+                                .prefix("meiliseach-cli-")
+                                .suffix(".md")
+                                .rand_bytes(5)
+                                .tempfile()?;
+                            tf.write_all(app.get_selected_contents().as_bytes())?;
+                            let viewer = pager.clone();
+                            // Support setting PAGER="bat --paging always"
+                            let mut viewer = viewer.split_whitespace();
+                            let mut cmd = Command::new(viewer.next().unwrap());
+                            for arg in viewer {
+                                cmd.arg(arg);
+                            }
+                            cmd.arg(tf.path())
+                                .status()
+                                .expect("failed to execute process");
+                            events = event::Events::new();
+                            tui = tui::Terminal::new(TermionBackend::new(AlternateScreen::from(
+                                stdout().into_raw_mode().unwrap(),
+                            )))
+                            .unwrap();
                         }
                         Key::Down | Key::Ctrl('n') => {
                             app.next();
