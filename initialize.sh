@@ -209,4 +209,8 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/settings -XPOST -d@-
 }
 EOF
 
-./target/debug/meilisearch-cli import '~/.local/vimdiary/*.md'
+if [ -f ./target/release/mz ] ; then
+    ./target/release/mz import '~/.local/vimdiary/*.md'
+else
+    ./target/debug/mz import '~/.local/vimdiary/*.md'
+fi

@@ -1,9 +1,12 @@
 [package]
-name = "meilisearch-cli"
+name = "meilizet"
 version = "0.1.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "mz"
+path = "src/main.rs"
 
 [dependencies]
 ansi-to-tui = "0.4.1"

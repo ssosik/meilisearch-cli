@@ -347,7 +347,7 @@ pub fn query(
                             tui.clear().unwrap();
                             drop(tui);
                             let mut tf = Builder::new()
-                                .prefix("meiliseach-cli-")
+                                .prefix("meilizet-")
                                 .suffix(".md")
                                 .rand_bytes(5)
                                 .tempfile()?;
@@ -375,7 +375,7 @@ pub fn query(
                             tui.clear().unwrap();
                             drop(tui);
                             let mut tf = Builder::new()
-                                .prefix("meiliseach-cli-")
+                                .prefix("meilizet-")
                                 .suffix(".md")
                                 .rand_bytes(5)
                                 .tempfile()?;

@@ -2,7 +2,7 @@ mod interactive;
 mod query;
 use color_eyre::Report;
 use glob::{glob, Paths};
-use meilisearch_cli::{api, document};
+use meilizet::{api, document};
 use reqwest::header::CONTENT_TYPE;
 use std::fs;
 use std::path::Path;
@@ -11,7 +11,7 @@ use url::Url;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "meilisearch-cli",
+    name = "meilizet",
     about = "CLI interface to Meilisearch to storing and retrieving Zettelkasten-style notes",
     author = "Steve <steve@little-fluffy.cloud>"
 )]
@@ -45,7 +45,7 @@ struct Opt {
 enum Subcommands {
     /// Import markdown-fm-doc formatted files matching the unexpanded glob pattern
     ImportLegacyMd { globpath: String },
-    /// Import meilisearch-cli/Document formatted files matching the unexpanded glob pattern
+    /// Import meilizet/Document formatted files matching the unexpanded glob pattern
     Import { globpath: String },
     /// Interactively query the server
     Query {},

@@ -1,0 +1,135 @@
+name: Latest builds
+
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  delete_prior_unstable_release:
+    name: Delete previous unstable release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old release
+        uses: larryjoelane/delete-release-action@v1.0.24
+        with:
+          token: ${{ github.token }}
+          release-name: unstable
+
+  create_release:
+    needs: delete_prior_unstable_release # Make sure previous is deleted
+    name: Create release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: unstable
+          release_name: unstable
+          draft: false
+          prerelease: true
+
+  build:
+    needs: create_release # we need to know the upload URL
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Adapted from https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml
+      matrix:
+        build: [linux-gnu, macos]
+        include:
+        - build: linux-gnu
+          os: ubuntu-latest
+          rust: nightly
+          target: x86_64-unknown-linux-gnu
+        - build: macos
+          os: macos-latest
+          rust: nightly
+          target: x86_64-apple-darwin
+        ## These are currently not supported.
+        #- build: linux-arm
+        #  os: ubuntu-latest
+        #  rust: nightly
+        #  target: arm-unknown-linux-gnueabihf
+        #- build: linux-musl
+        #  os: ubuntu-latest
+        #  rust: nightly
+        #  target: x86_64-unknown-linux-musl
+
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Get package version
+      shell: bash
+      run: |
+        echo "VERSION=$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name =="meilizet") | .version')" >> $GITHUB_ENV
+
+    #- name: Install build dependencies (Ubuntu)
+    #  if: matrix.os == 'ubuntu-latest'
+    #  run: |
+    #    sudo apt-get install pkg-config libssl-dev
+
+    #- name: Install packages (macOS)
+    #  if: matrix.os == 'macos-latest'
+    #  run: |
+    #    brew install openssl@1.1
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        profile: minimal
+        override: true
+        target: ${{ matrix.target }}
+
+    - name: Set up build target
+      shell: bash
+      run: |
+        cargo install cross
+        echo "CARGO=cross" >> $GITHUB_ENV
+        echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
+
+    - name: Build binary
+      run: ${{ env.CARGO }} build --release ${{ env.TARGET_FLAGS }}
+
+    - name: Strip release binary (linux and macos)
+      if: matrix.build == 'linux' || matrix.build == 'macos'
+      run: strip "target/${{ matrix.target }}/release/mz"
+
+    - name: Build asset
+      shell: bash
+      run: |
+        staging="mz-${{ env.VERSION }}-${{ matrix.target }}"
+        mkdir -p "$staging/bin"
+        cp "target/${{ matrix.target }}/release/mz" "$staging/bin/"
+        tar czf "$staging.tar.gz" "$staging"
+        echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+
+    #- name: Delete old release asset
+    #  uses: mknejp/delete-release-assets@v1
+    #  with:
+    #    token: ${{ github.token }}
+    #    tag: unstable
+    #    assets: ${{ env.ASSET }}
+    #    fail-if-no-assets: false
+
+    - name: Upload release assets
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ${{ env.ASSET }}
+        asset_name: ${{ env.ASSET }}
+        asset_content_type: application/octet-stream
