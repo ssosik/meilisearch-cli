@@ -11,13 +11,12 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/settings -XPOST -d@-
   "filterableAttributes": [
     "authors",
     "date",
-    "latest",
     "tags"
   ],
   "sortableAttributes": [
     "date",
-    "revision",
     "weight",
+    "writes",
     "views"
   ],
   "rankingRules": [
@@ -204,8 +203,7 @@ cat <<EOF | curl http://localhost:7700/indexes/notes/settings -XPOST -d@-
     "yourself",
     "yourselves"
   ],
-  "synonyms": {},
-  "distinctAttribute": "origid"
+  "synonyms": {}
 }
 EOF
 

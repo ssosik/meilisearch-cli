@@ -202,8 +202,7 @@ pub fn query(
             f.render_widget(preview_text, screen[1]);
 
             // Output area where match titles are displayed
-            // TODO panes specifically for tag, weight, revisions, date, author, id, origid,
-            //    latest
+            // TODO panes specifically for tag, weight, date, author, id, parentid
             let interactive = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(0)

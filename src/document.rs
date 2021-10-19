@@ -27,10 +27,9 @@ impl Default for SerializationType {
 pub struct Document {
     #[serde(default)]
     pub id: String,
-    // If updating an existing doc, this will point to the `id` of the original document, and
-    // the revision field should be incremented
+    // For hierarchical linking, link to a parent document
     #[serde(default)]
-    pub origid: String,
+    pub parentid: String,
     #[serde(default, alias = "author")]
     pub authors: Vec<String>,
     // Note the custom Serialize implementation below to skip the `body` depending on how
@@ -43,11 +42,6 @@ pub struct Document {
     /// Epoch seconds
     #[serde(deserialize_with = "date_deserializer")]
     pub date: Date,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "is_false")]
-    pub latest: bool,
-    #[serde(default)]
-    pub revision: u16,
     pub title: String,
     #[serde(default)]
     pub background_img: String,
@@ -62,6 +56,8 @@ pub struct Document {
     pub tags: Vec<String>,
     #[serde(default)]
     pub weight: i32,
+    #[serde(default)]
+    pub writes: u16,
     #[serde(default)]
     pub views: i32,
     #[serde(default)]
@@ -106,10 +102,9 @@ impl Document {
                 doc.filename = String::from(path.file_name().unwrap().to_str().unwrap());
                 doc.body = content.to_string();
                 if doc.id.width() == 0 {
-                    doc.latest = true;
                     let uuid = UuidB64::new();
                     doc.id = uuid.to_string();
-                    doc.origid = uuid.to_string();
+                    doc.parentid = uuid.to_string();
                 }
 
                 Ok(doc)
@@ -171,12 +166,11 @@ impl From<markdown_fm_doc::Document> for Document {
         let uuid = UuidB64::new();
         Document {
             id: uuid.to_string(),
-            origid: uuid.to_string(),
+            parentid: uuid.to_string(),
             authors: vec![item.author],
             body: item.body,
             date: Date::from_str(&item.date).unwrap(),
-            latest: true,
-            revision: 1,
+            writes: 1,
             tags: item.tags,
             title: item.title,
             subtitle: item.subtitle,
@@ -193,8 +187,8 @@ impl Serialize for Document {
         S: Serializer,
     {
         let mut s = match self.serialization_type {
-            SerializationType::Storage => serializer.serialize_struct("Document", 15)?,
-            SerializationType::Disk => serializer.serialize_struct("Document", 13)?,
+            SerializationType::Storage => serializer.serialize_struct("Document", 14)?,
+            SerializationType::Disk => serializer.serialize_struct("Document", 12)?,
             SerializationType::Human => {
                 return serializer.serialize_struct("Document", 0)?.end();
             }
@@ -215,10 +209,9 @@ impl Serialize for Document {
         };
         s.serialize_field("authors", &self.authors)?;
         s.serialize_field("id", &self.id)?;
-        s.serialize_field("origid", &self.origid)?;
+        s.serialize_field("parentid", &self.parentid)?;
         s.serialize_field("weight", &self.weight)?;
-        s.serialize_field("revision", &self.revision)?;
-        s.serialize_field("latest", &self.latest)?;
+        s.serialize_field("writes", &self.writes)?;
         if self.background_img.width() > 0 {
             s.serialize_field("background_img", &self.background_img)?;
         };
