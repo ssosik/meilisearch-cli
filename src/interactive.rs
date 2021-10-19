@@ -345,6 +345,8 @@ pub fn query(
                             drop(events);
                             tui.clear().unwrap();
                             drop(tui);
+                            // TODO get rid of the random bytes here and use the doc id as part of
+                            // the prefix
                             let mut tf = Builder::new()
                                 .prefix("meilizet-")
                                 .suffix(".md")
@@ -373,6 +375,8 @@ pub fn query(
                             drop(events);
                             tui.clear().unwrap();
                             drop(tui);
+                            // TODO get rid of the random bytes here and use the doc id as part of
+                            // the prefix
                             let mut tf = Builder::new()
                                 .prefix("meilizet-")
                                 .suffix(".md")

@@ -190,6 +190,8 @@ impl Serialize for Document {
             SerializationType::Storage => serializer.serialize_struct("Document", 14)?,
             SerializationType::Disk => serializer.serialize_struct("Document", 12)?,
             SerializationType::Human => {
+                // The Display trait implementation above handles displaying just the
+                // document body, don't need to serialize any of the doc metadata
                 return serializer.serialize_struct("Document", 0)?.end();
             }
         };
